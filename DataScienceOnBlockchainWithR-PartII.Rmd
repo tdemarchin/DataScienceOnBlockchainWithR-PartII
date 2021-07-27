@@ -1,0 +1,113 @@
+---
+title: "Data Science on Blockchain with R. Part II: Tracking CryptoPunk NFTs"
+author: "By Thomas de Marchin (Senior Manager Statistics and Data Sciences at Pharmalex) and Milana Filatenkova (Manager Statistics and Data Sciences at Pharmalex)"
+date: "XXX2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+```
+
+![CryptoPunks are the earliest versions of NFTs (www.larvalabs.com/cryptopunks). Image modified from https://commons.wikimedia.org/wiki/File:Cryptopunks.png.](figures/myCruptoPunks.png)
+
+# Introduction
+
+```{r}
+# First, let's load a few useful packages
+library(tidyverse)
+library(httr)
+library(jsonlite)
+```
+
+Code of the CryptoPunk contract: https://etherscan.io/address/0xb47e3cd837ddf8e4c57f05d70ab865de6e193bbb#code
+
+Structure of the event:
+    event Assign(address indexed to, uint256 punkIndex);
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event PunkTransfer(address indexed from, address indexed to, uint256 punkIndex);
+    event PunkOffered(uint indexed punkIndex, uint minValue, address indexed toAddress);
+    event PunkBidEntered(uint indexed punkIndex, uint value, address indexed fromAddress);
+    event PunkBidWithdrawn(uint indexed punkIndex, uint value, address indexed fromAddress);
+    event PunkBought(uint indexed punkIndex, uint value, address indexed fromAddress, address indexed toAddress);
+
+Interesting events:
+
+
+
+topics[0] is the hash of the event signature
+ 
+PunkBought(punkIndex, msg.value, seller, msg.sender);
+  topic0 = 0x58e5d5a525e3b40bc15abaa38b5882678db1ee68befd2f60bafe3a7fd06db9e3
+
+// Transfer ownership of a punk to another user without requiring payment
+PunkTransfer(msg.sender, to, punkIndex)
+  topic0 = 0x05af636b70da6819000c49f85b21fa82081c632069bb626f30932034099107d8
+
+
+# Tracking the CryptoPunk NFTs
+
+```{r}
+# EtherScan requires a token, have a look at their website. Please, use your own token!
+EtherScanAPIToken <- "UJP16VCE9D29XFAA86RWADATJ5K4PBSYD9" 
+
+# Retrieve the last 10000 transactions (maximum allowed by Etherscan) from the OpenSea contract
+resEtherScan <- GET("https://api.etherscan.io/api",
+          query = list(module="account", 
+                       action="txlist", 
+                       address="0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB",
+                       sort="desc",
+                       apikey=EtherScanAPIToken))
+
+# Convert the raw unicode (not human friendly) into JSON format 
+# Don't forget the option flatten=TRUE, otherwise the objects will be a complex list of list of list, impossible to work with
+dataEtherScan <- fromJSON(rawToChar(resEtherScan$content), flatten=TRUE)$result
+
+dataEtherScan <- dataEtherScan %>% 
+  mutate(timeStamp=as.POSIXct(as.numeric(timeStamp), origin="1970-01-01")) # Convert the timestamp to a date
+
+```
+
+```{r}
+resEtherScanPunkBought <- GET("https://api.etherscan.io/api",
+          query = list(module="logs", 
+                       action="getLogs", 
+                       # fromBlock="0",
+                       # toBlock="latest",
+                       address="0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB",
+                       topic0="0x58e5d5a525e3b40bc15abaa38b5882678db1ee68befd2f60bafe3a7fd06db9e3", # Hash of the PunkBought event
+                       sort="desc",
+                       apikey=EtherScanAPIToken)) 
+
+dataEtherScanPunkBought <- fromJSON(rawToChar(resEtherScanPunkBought$content), flatten=TRUE)$result
+
+dataEtherScanPunkBought2 <- dataEtherScanPunkBought %>% 
+  mutate(timeStamp=as.POSIXct(as.numeric(timeStamp), origin="1970-01-01")) %>%
+  unnest_wider(topics) %>% # reshape the topic column (list) to get a column for each topics
+  rename(`eventHash`=`...1`, #rename as original naming is not very practical
+         `punkIndex`=`...2`,
+         `fromAddress`=`...3`,
+         `toAddress`=`...4`,
+         `value`=`data`) %>%
+  mutate(value=as.numeric(value) / 10^18, # convert first Hexadecimal to numeric and then Wei to ETH
+         punkIndex=as.numeric(punkIndex), # convert Hexadecmal to numeric
+         fromAddress=paste0("0x", str_sub(fromAddress,-40,-1)), # reshape the adress format to something more conventional
+         toAddress=paste0("0x", str_sub(toAddress,-40,-1)))
+
+# It is possible to transfer without payement but let's first focus on the real sales.
+# resEtherScanPunkTransfer <- GET("https://api.etherscan.io/api",
+#           query = list(module="logs", 
+#                        action="getLogs", 
+#                        fromBlock="0",
+#                        toBlock="latest",
+#                        address="0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB",
+#                        topic0="0x05af636b70da6819000c49f85b21fa82081c632069bb626f30932034099107d8",
+#                        sort="desc",
+#                        apikey=EtherScanAPIToken)) 
+# 
+# dataEtherScanPunkTransfer <- fromJSON(rawToChar(resEtherScanPunkTransfer$content), flatten=TRUE)$result
+
+
+```
+
