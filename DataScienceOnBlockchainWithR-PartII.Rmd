@@ -48,52 +48,35 @@ PunkTransfer(msg.sender, to, punkIndex)
 
 # Tracking the CryptoPunk NFTs
 
-```{r}
-# EtherScan requires a token, have a look at their website. Please, use your own token!
-EtherScanAPIToken <- "UJP16VCE9D29XFAA86RWADATJ5K4PBSYD9" 
-
-# Retrieve the last 10000 transactions (maximum allowed by Etherscan) from the OpenSea contract
-resEtherScan <- GET("https://api.etherscan.io/api",
-          query = list(module="account", 
-                       action="txlist", 
-                       address="0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB",
-                       sort="desc",
-                       apikey=EtherScanAPIToken))
-
-# Convert the raw unicode (not human friendly) into JSON format 
-# Don't forget the option flatten=TRUE, otherwise the objects will be a complex list of list of list, impossible to work with
-dataEtherScan <- fromJSON(rawToChar(resEtherScan$content), flatten=TRUE)$result
-
-dataEtherScan <- dataEtherScan %>% 
-  mutate(timeStamp=as.POSIXct(as.numeric(timeStamp), origin="1970-01-01")) # Convert the timestamp to a date
-
-```
 
 ```{r}
-resEtherScanPunkBought <- GET("https://api.etherscan.io/api",
-          query = list(module="logs", 
-                       action="getLogs", 
-                       # fromBlock="0",
-                       # toBlock="latest",
-                       address="0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB",
-                       topic0="0x58e5d5a525e3b40bc15abaa38b5882678db1ee68befd2f60bafe3a7fd06db9e3", # Hash of the PunkBought event
-                       sort="desc",
-                       apikey=EtherScanAPIToken)) 
-
-dataEtherScanPunkBought <- fromJSON(rawToChar(resEtherScanPunkBought$content), flatten=TRUE)$result
-
-dataEtherScanPunkBought2 <- dataEtherScanPunkBought %>% 
-  mutate(timeStamp=as.POSIXct(as.numeric(timeStamp), origin="1970-01-01")) %>%
-  unnest_wider(topics) %>% # reshape the topic column (list) to get a column for each topics
-  rename(`eventHash`=`...1`, #rename as original naming is not very practical
-         `punkIndex`=`...2`,
-         `fromAddress`=`...3`,
-         `toAddress`=`...4`,
-         `value`=`data`) %>%
-  mutate(value=as.numeric(value) / 10^18, # convert first Hexadecimal to numeric and then Wei to ETH
-         punkIndex=as.numeric(punkIndex), # convert Hexadecmal to numeric
-         fromAddress=paste0("0x", str_sub(fromAddress,-40,-1)), # reshape the adress format to something more conventional
-         toAddress=paste0("0x", str_sub(toAddress,-40,-1)))
+# # EtherScan requires a token, have a look at their website. Please, use your own token!
+# EtherScanAPIToken <- "UJP16VCE9D29XFAA86RWADATJ5K4PBSYD9" 
+# 
+# resEtherScanPunkBought <- GET("https://api.etherscan.io/api",
+#           query = list(module="logs", 
+#                        action="getLogs", 
+#                        # fromBlock="0",
+#                        # toBlock="latest",
+#                        address="0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB",
+#                        topic0="0x58e5d5a525e3b40bc15abaa38b5882678db1ee68befd2f60bafe3a7fd06db9e3", # Hash of the PunkBought event
+#                        sort="desc",
+#                        apikey=EtherScanAPIToken)) 
+# 
+# dataEtherScanPunkBought <- fromJSON(rawToChar(resEtherScanPunkBought$content), flatten=TRUE)$result
+# 
+# dataEtherScanPunkBought2 <- dataEtherScanPunkBought %>% 
+#   mutate(timeStamp=as.POSIXct(as.numeric(timeStamp), origin="1970-01-01")) %>%
+#   unnest_wider(topics) %>% # reshape the topic column (list) to get a column for each topics
+#   rename(`eventHash`=`...1`, #rename as original naming is not very practical
+#          `punkIndex`=`...2`,
+#          `fromAddress`=`...3`,
+#          `toAddress`=`...4`,
+#          `value`=`data`) %>%
+#   mutate(value=as.numeric(value) / 10^18, # convert first Hexadecimal to numeric and then Wei to ETH
+#          punkIndex=as.numeric(punkIndex), # convert Hexadecmal to numeric
+#          fromAddress=paste0("0x", str_sub(fromAddress,-40,-1)), # reshape the adress format to something more conventional
+#          toAddress=paste0("0x", str_sub(toAddress,-40,-1)))
 
 # It is possible to transfer without payement but let's first focus on the real sales.
 # resEtherScanPunkTransfer <- GET("https://api.etherscan.io/api",
@@ -111,3 +94,76 @@ dataEtherScanPunkBought2 <- dataEtherScanPunkBought %>%
 
 ```
 
+# Tracking the Weird Whales
+
+Here is an example of a Weird Whale NFT transaction: https://etherscan.io/tx/0x2b21165a60abe3dfdc94d03fd9daa0671dc9b982e8b7fdf6342ed28967c15cfd#eventlog
+
+
+```{r}
+# EtherScan requires a token, have a look at their website. Please, use your own token!
+EtherScanAPIToken <- "UJP16VCE9D29XFAA86RWADATJ5K4PBSYD9" 
+
+# Get the transfer events from the Weird Whale contract
+resWeirdWhaleTransfer <- GET("https://api.etherscan.io/api",
+          query = list(module="logs", 
+                       action="getLogs", 
+                       fromBlock="12859414", # before that block, transfer event was for minting
+                       toBlock="latest",
+                       address="0x96ed81c7f4406eff359e27bff6325dc3c9e042bd", # adress of the Weird Whale contract
+                       topic0="0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", # hash of the Transfer event
+                       sort="desc",
+                       apikey=EtherScanAPIToken)) 
+
+dataWeirdWhaleTransfer <- fromJSON(rawToChar(resWeirdWhaleTransfer$content), flatten=TRUE)$result %>%
+  select(-gasPrice, -gasUsed, -logIndex)
+
+dataWeirdWhaleTransfer <- dataWeirdWhaleTransfer %>% 
+  mutate(timeStamp=as.POSIXct(as.numeric(timeStamp), origin="1970-01-01")) %>%
+  unnest_wider(topics) %>% # reshape the topic column (list) to get a column for each topics
+  rename(`eventHash`=`...1`, #rename as original naming is not very practical
+         `fromAddress`=`...2`,
+         `toAddress`=`...3`,
+         `tokenId`=`...4`,
+         `value`=`data`) %>%
+  mutate(tokenId=as.numeric(tokenId), # convert Hexadecmal to numeric
+         blockNumber=as.numeric(blockNumber),
+         fromAddress=paste0("0x", str_sub(fromAddress,-40,-1)), # reshape the adress format to something more conventional
+         toAddress=paste0("0x", str_sub(toAddress,-40,-1)))
+
+# Get the OrderMatch events from the Weird Whale contract
+resOpenSeaOrderMatch <- GET("https://api.etherscan.io/api",
+          query = list(module="logs", 
+                       action="getLogs", 
+                       fromBlock="12859414", # before that block, transfer event was for minting
+                       toBlock="latest",
+                       address="0x7be8076f4ea4a4ad08075c2508e481d6c946d12b", # adress of the Open Sea contract
+                       topic0="0xc4109843e0b7d514e4c093114b863f8e7d8d9a458c372cd51bfe526b588006c9", # hash of the OrderMatch event
+                       sort="desc",
+                       apikey=EtherScanAPIToken)) 
+
+dataOpenSeaOrderMatch <- fromJSON(rawToChar(resOpenSeaOrderMatch$content), flatten=TRUE)$result %>%
+  select(-gasPrice, -gasUsed, -logIndex)
+
+dataOpenSeaOrderMatch <- dataOpenSeaOrderMatch %>% 
+  mutate(timeStamp=as.POSIXct(as.numeric(timeStamp), origin="1970-01-01")) %>%
+  unnest_wider(topics) %>% # reshape the topic column (list) to get a column for each topics
+  rename(`eventHash`=`...1`, #rename as original naming is not very practical
+         `fromAddress`=`...2`,
+         `toAddress`=`...3`,
+         `metadata`=`...4`,
+         `data`=`data`) %>%
+  mutate(blockNumber=as.numeric(blockNumber),
+         fromAddress=paste0("0x", str_sub(fromAddress,-40,-1)), # reshape the adress format to something more conventional
+         toAddress=paste0("0x", str_sub(toAddress,-40,-1)))
+
+a <- left_join(dataWeirdWhaleTransfer, dataOpenSeaOrderMatch, by="transactionHash")
+
+
+hex_string <- "0x00000000000000000000000000000000000000000000000000000000000000006cb5c489ae0fd5b83bc8ac37481e9e76e1d0cf763e3f03daa06ad581ef74a5240000000000000000000000000000000000000000000000000058d15e17628000"
+library(stringr)
+str_sub(hex_string, 64, 0)
+
+library(wkb)
+hex_raw <- wkb::hex2raw(hex_string)
+text <- rawToChar(as.raw(strtoi(hex_raw, 16L)))
+# now i can get the rensaction price by merging with the OrderMatch event from the address 0x7be8076f4ea4a4ad08075c2508e481d6c946d12b https://etherscan.io/tx/0x2b21165a60abe3dfdc94d03fd9daa0671dc9b982e8b7fdf6342ed28967c15cfd#eventlog
