@@ -20,6 +20,11 @@ library(tidyverse)
 library(httr)
 library(jsonlite)
 library(plotly)
+library(patchwork)
+library(cowplot)
+library(ggnetwork)
+library(networkDynamic)
+library(ndtv)
 ```
 
 
@@ -105,39 +110,39 @@ The Weird Whales project is a collection of 3350 whales which have been programm
 ## Downloading the NFTs
 
 ```{r}
-# Retrieve sold NFTs 
-sequenceTokenIds <- seq(1, 3350, by=50)
-dataOpenSea <- list()
+# # Retrieve sold NFTs 
+ sequenceTokenIds <- seq(1, 3350, by=50)
+# dataOpenSea <- list()
+# 
+# # The API is limited to 50 observation per call. We have to use a loop to retrieve the 3350 items of the Weird whale collection.
+# for(i in 1:length(sequenceTokenIds)){
+#   print(sequenceTokenIds[i])
+# 
+#   # These 2 steps are necessary to build the "token_ids" part of the URL.
+#   # We can't use the GET "query" option as we need to push an array of token_ids and there is no easy way to do that with that option.
+#   tokenIds <- seq(from=sequenceTokenIds[i], to=sequenceTokenIds[i]+49)
+#   requestTokenIds <- paste0("token_ids=", tokenIds, collapse="&")
+#   request <- paste0("https://api.opensea.io/api/v1/assets?limit=50&asset_contract_address=0x96ed81c7f4406eff359e27bff6325dc3c9e042bd&", requestTokenIds) #build the request URL
+#   resOpenSea <- GET(request)
+#   dataOpenSea[[i]] <- fromJSON(rawToChar(resOpenSea$content), flatten=TRUE)[[1]]
+# }
+# 
+# dataOpenSea <- bind_rows(dataOpenSea) %>% #combine the list in a dataframe
+#   mutate(token_id = as.numeric(token_id)) %>%
+#   arrange(token_id)
 
-# The API is limited to 50 observation per call. We have to use a loop to retrieve the 3350 items of the Weird whale collection.
-for(i in 1:length(sequenceTokenIds)){
-  print(sequenceTokenIds[i])
-  
-  # These 2 steps are necessary to build the "token_ids" part of the URL. 
-  # We can't use the GET "query" option as we need to push an array of token_ids and there is no easy way to do that with that option.
-  tokenIds <- seq(from=sequenceTokenIds[i], to=sequenceTokenIds[i]+49)
-  requestTokenIds <- paste0("token_ids=", tokenIds, collapse="&")
-  request <- paste0("https://api.opensea.io/api/v1/assets?limit=50&asset_contract_address=0x96ed81c7f4406eff359e27bff6325dc3c9e042bd&", requestTokenIds) #build the request URL
-  resOpenSea <- GET(request)
-  dataOpenSea[[i]] <- fromJSON(rawToChar(resOpenSea$content), flatten=TRUE)[[1]] 
-}
+# # Download the pictures
+# for(i in 1:nrow(dataOpenSea)){
+#   print(paste("Downloading image:", i))
+#   download.file(url = dataOpenSea$image_preview_url[i], #let's just download the preview, their size is small and resolution is fine for our needs
+#                 destfile = paste0("figures/WeirdWhales/", 
+#                                   dataOpenSea$token_id[i], '.png'), 
+#                 mode = 'wb',
+#                 quiet = TRUE)
+# }
 
-dataOpenSea <- bind_rows(dataOpenSea) %>% #combine the list in a dataframe
-  mutate(token_id = as.numeric(token_id)) %>%
-  arrange(token_id)
 
-# Download the pictures
-for(i in 1:nrow(dataOpenSea)){
-  print(paste("Downloading image:", i))
-  download.file(url = dataOpenSea$image_preview_url[i], #let's just download the preview, their size is small and resolution is fine for our needs
-                destfile = paste0("figures/WeirdWhales/", 
-                                  dataOpenSea$token_id[i], '.png'), 
-                mode = 'wb',
-                quiet = TRUE)
-}
-
-library(patchwork)
-samples <- sample(c(1:max(dataOpenSea$token_id)), size=8)
+samples <- sample(sequenceTokenIds, size=8)
 p1 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[1], ".png"), scale = 0.9)
 p2 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[2], ".png"), scale = 0.9)
 p3 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[3], ".png"), scale = 0.9)
@@ -157,42 +162,81 @@ Here is an example of a Weird Whale NFT transaction: https://etherscan.io/tx/0x2
 # EtherScan requires a token, have a look at their website. Please, use your own token!
 EtherScanAPIToken <- "UJP16VCE9D29XFAA86RWADATJ5K4PBSYD9" 
 
+dataWeirdWhaleTransfer <- list()
+continue <- 1
+i <- 0
+
+while(continue == 1){ # We will run trough the blocks (from the earliest mentioning Weird whales to the latest). As soon ...
+i <- i + 1
+print(i)
+if(i == 1){fromBlock = 12857046} #first block mentioning Weird Whale contract
+
 # Get the transfer events from the Weird Whale contract
 resWeirdWhaleTransfer <- GET("https://api.etherscan.io/api",
           query = list(module="logs", 
                        action="getLogs", 
-                       fromBlock="12859414", # before that block, transfer event was for minting
-                       # fromBlock="12857046", #first block mentionning Weird Whale contract
+                       fromBlock=fromBlock, #first block mentioning Weird Whale contract
                        toBlock="latest",
                        address="0x96ed81c7f4406eff359e27bff6325dc3c9e042bd", # address of the Weird Whale contract
                        topic0="0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", # hash of the Transfer event
-                       sort="desc",
                        apikey=EtherScanAPIToken)) 
 
-dataWeirdWhaleTransfer <- fromJSON(rawToChar(resWeirdWhaleTransfer$content), flatten=TRUE)$result %>%
+dataWeirdWhaleTransfer[[i]] <- fromJSON(rawToChar(resWeirdWhaleTransfer$content), flatten=TRUE)$result %>%
   select(-gasPrice, -gasUsed, -logIndex)
 
+if(i > 1){
+if(all_equal(dataWeirdWhaleTransfer[[i]], dataWeirdWhaleTransfer[[i-1]]) == TRUE){continue <- 0}  
+} #at some point, we always download the same last transaction
+
+fromBlock <- max(as.numeric(dataWeirdWhaleTransfer[[i]]$blockNumber)) # increase the block to start looking at for the next iteration
+}
+
+dataWeirdWhaleTransfer <- bind_rows(dataWeirdWhaleTransfer) %>% #coerce list to dataframe
+  distinct() # eliminate potential duplicated rows due to our trick to avoid the 1000 transaction limitation from EtherScan
+
+# Do a bit of data management
 dataWeirdWhaleTransfer <- dataWeirdWhaleTransfer %>% 
   mutate(timeStamp=as.POSIXct(as.numeric(timeStamp), origin="1970-01-01")) %>%
-  unnest_wider(topics) %>% # reshape the topic column (list) to get a column for each topics
-  rename(`eventHash`=`...1`, #rename as original naming is not very practical
-         `fromAddress`=`...2`,
-         `toAddress`=`...3`,
-         `tokenId`=`...4`,
-         `value`=`data`) %>%
+  mutate(topics = purrr::map(topics, setNames, c("eventHash","fromAddress","toAddress","tokenId"))) %>% # it is important to set the names otherwise unnest_wider will print many warning messages.
+  unnest_wider(topics) %>% # reshape the topic column (list) to get a column for each topic. 
   mutate(tokenId=as.character(as.numeric(tokenId)), # convert Hexadecmal to numeric
          blockNumber=as.numeric(blockNumber),
          fromAddress=paste0("0x", str_sub(fromAddress,-40,-1)), # reshape the adress format to something more conventional
          toAddress=paste0("0x", str_sub(toAddress,-40,-1))) %>%
   mutate(tokenId = factor(tokenId, levels=as.character(sort(unique(as.numeric(tokenId))))))
 
+# Summary statistics
+summary(dataWeirdWhaleTransfer$timeStamp)
+
+dataWeirdWhaleTransfer %>%
+  summarise(`Number of transactions` = n(),
+            `Unique token` = length(unique(tokenId)),
+            `Unique senders` = length(unique(fromAddress)),
+            `Unique receivers` = length(unique(toAddress)),
+            `Date range` = paste(min(timeStamp), max(timeStamp), sep=" - "),
+            `Days` = max(timeStamp) - min(timeStamp)
+            ) 
+
+summarySender <- dataWeirdWhaleTransfer %>%
+  group_by(fromAddress) %>%
+  summarise(`Number of transactions`=n()) %>%
+  rename(`Sender address` = fromAddress) %>%
+  arrange(desc(`Number of transactions`))
+```
+
+1) Faire un Graph du prix des transactions en fonction du temps. (genre barplot - histogram)
+
+We have data from
+```{r}
 tokenIdFilter <- dataWeirdWhaleTransfer %>%
   group_by(tokenId) %>%
   summarise(n = n()) %>%
-  filter(n>1)
+  filter(n>3)
 
-dataWeirdWhaleTransferFiltered <- filter(dataWeirdWhaleTransfer, tokenId %in% tokenIdFilter$tokenId) %>%
+dataWeirdWhaleTransferFiltered <- dataWeirdWhaleTransfer %>%
+  filter(tokenId %in% tokenIdFilter$tokenId) %>%
   droplevels()
+
 # pScatterWeirdWhaleTransfer <- ggplot(aes(x=timeStamp, y=tokenId, group=tokenId, text=tokenId), data = dataWeirdWhaleTransferFiltered) +
 #   geom_point() + geom_line()
 # pScatterWeirdWhaleTransfer <- ggplotly(pScatterWeirdWhaleTransfer, tooltip = "text")
@@ -216,122 +260,161 @@ plot_ly(type = 'scatter',
   htmlwidgets::onRender(readLines("js/tooltip-image.js")) # this script allows to embed the NFT image when hoovering a point
 ```
 
+
+Here we outline a process to create a set of large databases so we have local access to image data and trade data of the cryptopunks,
+
 Network graph: 
-https://www.jessesadler.com/post/network-analysis-with-r/
-https://programminghistorian.org/en/lessons/temporal-network-analysis-with-r
-https://www.r-graph-gallery.com/network-interactive.html
-https://christophergandrud.github.io/networkD3/
 
-To do: https://kateto.net/network-visualization 
 
-```{r}
-# sources <- dataWeirdWhaleTransfer %>%
-#   distinct(fromAddress) %>%
-#   rename(label = fromAddress)
-# 
-# destinations <- dataWeirdWhaleTransfer %>%
-#   distinct(toAddress) %>%
-#   rename(label = toAddress)
-# nodes <- full_join(sources, destinations, by = "label") %>%
-#   rowid_to_column("id")
-# 
-# 
-# edges <- dataWeirdWhaleTransfer %>%
-#   left_join(nodes, by = c("fromAddress" = "label")) %>%
-#   rename(from = id)
-# 
-# edges <- edges %>%
-#   left_join(nodes, by = c("toAddress" = "label")) %>%
-#   rename(to = id)
-# 
-# edges <- select(edges, from, to, tokenId) %>%
-#   filter(tokenId %in% tokenIdFilter$tokenId)
-# 
-# # library(tidygraph)
-# library(igraph)
-# library(networkD3)
-# p <- simpleNetwork(edges, height="100px", width="100px")
-# 
-# p2 <- forceNetwork(Links = edges, Nodes = nodes,
-#             Source = "from", Target = "to",
-#             NodeID = "id",
-#             Group = "id", opacity = 0.8)
-# p2
-# 
-# # create the network object
-# network <- graph_from_data_frame(d=edges, directed=F)
-# plot(network, vertex.size=1, edge.arrow.width=1)
-# 
-# # plot it
-# plot(network)
-# 
-# # network <- graph_from_data_frame(d=edges, vertices=nodes, directed=F)
-# 
-# 
-# 
-# routes_tidy <- tbl_graph(nodes = nodes, edges = edges, directed = TRUE)
-# # ggraph(routes_tidy) + geom_edge_link() + geom_node_point() + theme_graph()
-# 
-# ggraph(routes_tidy, layout = "graphopt") +
-#   geom_node_point() +
-#   geom_edge_link(aes(), alpha = 0.8) +
-#   scale_edge_width(range = c(0.2, 2)) +
-#   geom_node_text(aes(label = label), repel = TRUE) +
-#   labs(edge_width = "N") +
-#   theme_graph()
+2) Faire un graph avec ggnetwork puis montrer qu'on peut l'animer.
 
-library(networkDynamic)
-library(ndtv)
+A vertex (or node) of a graph is one of the objects that are connected together. The connections between the vertices are called edges (or links). 
+
+```{r, fig}
+# senderFilter <- summarySender %>%
+#   filter(`Number of transactions`>20)
+# 
+# dataWeirdWhaleTransferFiltered <- dataWeirdWhaleTransfer %>%
+#   filter(fromAddress %in% senderFilter$`Sender address`) %>%
+#   droplevels()
+
+tokenIdFilter <- dataWeirdWhaleTransfer %>%
+  group_by(tokenId) %>%
+  summarise(n = n()) %>%
+  filter(n>7)
+
+dataWeirdWhaleTransferFiltered <- dataWeirdWhaleTransfer %>%
+  filter(tokenId %in% tokenIdFilter$tokenId) %>%
+  # filter(fromAddress != "0x0000000000000000000000000000000000000000") %>% #let's remove the minting as it leads to 
+  droplevels()
+
 
 dataWeirdWhaleTransferFiltered <- dataWeirdWhaleTransferFiltered %>%
-  mutate(timeStampNumeric = as.numeric(timeStamp)) %>%
-  mutate(timeStampNumeric = timeStampNumeric-min(timeStampNumeric))  
+  mutate(timeStampHour = round.POSIXt(timeStamp, "hour")) %>% # The time resolution is seconds. That is nice but it leads to a lot of computation (frames) for our network. Let's round to hours.
+  mutate(timeStampHourNumeric = as.numeric(timeStampHour)/3600) %>%
+  mutate(timeStampHourNumeric = timeStampHourNumeric-min(timeStampHourNumeric))  
 
-sources <- dataWeirdWhaleTransferFiltered %>%
-  distinct(fromAddress) %>%
-  rename(label = fromAddress)
+# vertices is a listing of all the addresses involved in the transactions   
+vertices <- tibble(label = factor(unique(c(dataWeirdWhaleTransferFiltered$fromAddress,
+                                           dataWeirdWhaleTransferFiltered$toAddress))))  %>%
+  rowid_to_column("id") # instead of using the addresses to visually identify the vertices, we will use shorter ID numbers 
 
-destinations <- dataWeirdWhaleTransferFiltered %>%
-  distinct(toAddress) %>%
-  rename(label = toAddress)
 
-nodes <- full_join(sources, destinations, by = "label") %>%
-  rowid_to_column("id")
-
+# edges is a listing of the transactions
 edges <- dataWeirdWhaleTransferFiltered %>%
-  left_join(nodes, by = c("fromAddress" = "label")) %>%
+  left_join(vertices, by = c("fromAddress" = "label")) %>% 
   rename(from = id) %>%
-  left_join(nodes, by = c("toAddress" = "label")) %>%
-  rename(to = id)
+  left_join(vertices, by = c("toAddress" = "label")) %>%
+  rename(to = id) 
 
-edges <- edges %>% 
-  rename(onset = timeStampNumeric) %>%
-  mutate(terminus = max(onset)) %>%
+# This will be useful to create a temporal dynamic network later on. Edges will appear at `onset` and disappear at `terminus.`
+
+edges <- edges %>%
+  rename(onset = timeStampHourNumeric) %>% 
+  mutate(terminus = max(onset), #  
+         tokenId = as.character(tokenId)) %>%
   select(from, to, tokenId, onset, terminus) 
 
-firstAppearanceNodes <- rbind(data.frame(id=edges$from, onset=edges$onset),
+# For the temporal dynamic network, we can also make the vertices appear at at `onset` and disappear at `terminus.`
+
+firstAppearanceVertices <- rbind(data.frame(id=edges$from, onset=edges$onset),
                               data.frame(id=edges$to, onset=edges$onset)) %>%
   group_by(id) %>%
   summarise(onset = min(onset))
 
-nodes <- nodes %>%
-  mutate(terminus = max(edges$terminus)) %>%
-  left_join(firstAppearanceNodes)
+lastAppearanceVertices <- rbind(data.frame(id=edges$from, terminus=edges$terminus),
+                              data.frame(id=edges$to, terminus=edges$terminus)) %>%
+  group_by(id) %>%
+  summarise(terminus = max(terminus))
 
-network <- networkDynamic(edge.spells = as.matrix(edges[,c(4,5,1,2)]), 
-                           vertex.spells = as.matrix(nodes[,c(4,3,1)])
-                           )
+vertices <- vertices %>%
+  left_join(firstAppearanceVertices) %>%
+  left_join(lastAppearanceVertices)
+
+
+# mieux maitriser les dataframes
+network <- network(edges[,c("onset","terminus","from","to")],  
+                         vertex.attr = vertices[,c("id", "onset", "terminus")], 
+                   matrix.type="edgelist", 
+                loops=T, 
+                multiple=T, 
+                ignore.eval = F)
+
+# network %v% "label" <- vertices[,"label"]
+# network %e% "tokenId" <- edges[,"tokenId"]
+
+ggNetwork <- ggnetwork(network)
+
+ggplot(ggNetwork, aes(x = x, y = y, xend = xend, yend = yend)) +
+  geom_edges(color = "black") +
+  geom_nodes(color = "black", size = 8) +
+  geom_nodetext(aes(label = label),
+                fontface = "bold") +
+  theme_blank()
+# 
+# #* simple networks ====================================================================
+# simple_edge_df <- data.frame(
+#   from = c("b", "c", "c", "d", "a"),
+#   to = c("a", "b", "a", "a", "b"),
+#   weight = c(1, 1, 2, 2, 3),
+#   stringsAsFactors = FALSE
+# )
+# simple_edge_df
+# 
+# as.network(simple_edge_df)
+# 
+# # simple networks with vertices =======================================================
+# simple_vertex_df <- data.frame(
+#   name = letters[1:5],
+#   residence = c("urban", "rural", "suburban", "suburban", "rural"),
+#   stringsAsFactors = FALSE
+# )
+# simple_vertex_df
+# 
+
+# network <- networkDynamic(edge.spells = data.frame(edges[,c("onset","terminus","from","to")]),
+# vertex.spells = data.frame(vertices[,c("onset","terminus","id")]))
+
+# activate dynamic elements for the tooltips
+network <- activate.vertex.attribute(network, 'label', data.frame(nodes[,c(2)]))
+network <- activate.edge.attribute(network, 'tokenId', data.frame(edges[,c(3)]))
 
 # plot(network)
 compute.animation(network, 
-                  slice.par=list(interval=50, 
-                                 start = 0, 
+                  # animation.mode='MDSJ',
+                  animation.mode='Graphviz', # Graphviz is the best
+                  slice.par=list(interval = 50, 
+                                 start = 1, 
                                  end = max(edges$terminus), 
-                                 aggregate.dur = 1, 
-                                 rule='latest')
-                  )
+                                 aggregate.dur = 50, 
+                                 rule='any'),
+                  verbose = T)
+# plot(network, displaylabels=TRUE)
 
-render.d3movie(network, output.mode = 'htmlWidget')
+timePrism(network,at=c(1,10,20),
+          displaylabels=TRUE,planes = TRUE,
+          label.cex=0.5)
+
+timeline(network)
+
+plot(network,
+     edge.label=(network %e% 'tokenId.active'),
+     edge.label.col='blue') 
+
+render.d3movie(network, 
+               output.mode = 'htmlWidget',
+               vertex.tooltip = paste("<b>Address:</b>", (network %v% 'label.active')),
+               # edge.tooltip = paste("<b>TokenId:</b>", (network %e% 'tokenId.active')),
+               # displaylabels = TRUE,
+               launchBrowser = T,
+               main='Ethereum transactions of Weird Whales NFTs',
+               edge.col = function(slice){slice%e%'tokenId.active'},
+               edge.label = function(slice){slice%e%'tokenId.active'},
+               usearrows = T)
+
+
+
+#To do: filter token involved in more than X transactions instead
 ```
 
 
