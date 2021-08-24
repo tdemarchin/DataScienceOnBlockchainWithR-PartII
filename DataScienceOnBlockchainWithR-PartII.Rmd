@@ -22,13 +22,14 @@ library(jsonlite)
 library(plotly)
 library(patchwork)
 library(cowplot)
-library(ggnetwork)
+library(network)
+library(ggraph)
 library(networkDynamic)
 library(ndtv)
 ```
 
 
-How to make the blockchain more transparent? Money laundering,...
+How to make the blockchain more transparent? Money laundering,... I don't want to have any problem with the mafia so let's focus on something else (NFT) at the moment.
 
 Code of the CryptoPunk contract: https://etherscan.io/address/0xb47e3cd837ddf8e4c57f05d70ab865de6e193bbb#code
 
@@ -54,54 +55,6 @@ PunkBought(punkIndex, msg.value, seller, msg.sender);
 PunkTransfer(msg.sender, to, punkIndex)
   topic0 = 0x05af636b70da6819000c49f85b21fa82081c632069bb626f30932034099107d8
 
-
-# Tracking the CryptoPunk NFTs
-
-
-```{r}
-# # EtherScan requires a token, have a look at their website. Please, use your own token!
-# EtherScanAPIToken <- "UJP16VCE9D29XFAA86RWADATJ5K4PBSYD9" 
-# 
-# resEtherScanPunkBought <- GET("https://api.etherscan.io/api",
-#           query = list(module="logs", 
-#                        action="getLogs", 
-#                        # fromBlock="0",
-#                        # toBlock="latest",
-#                        address="0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB",
-#                        topic0="0x58e5d5a525e3b40bc15abaa38b5882678db1ee68befd2f60bafe3a7fd06db9e3", # Hash of the PunkBought event
-#                        sort="desc",
-#                        apikey=EtherScanAPIToken)) 
-# 
-# dataEtherScanPunkBought <- fromJSON(rawToChar(resEtherScanPunkBought$content), flatten=TRUE)$result
-# 
-# dataEtherScanPunkBought2 <- dataEtherScanPunkBought %>% 
-#   mutate(timeStamp=as.POSIXct(as.numeric(timeStamp), origin="1970-01-01")) %>%
-#   unnest_wider(topics) %>% # reshape the topic column (list) to get a column for each topics
-#   rename(`eventHash`=`...1`, #rename as original naming is not very practical
-#          `punkIndex`=`...2`,
-#          `fromAddress`=`...3`,
-#          `toAddress`=`...4`,
-#          `value`=`data`) %>%
-#   mutate(value=as.numeric(value) / 10^18, # convert first Hexadecimal to numeric and then Wei to ETH
-#          punkIndex=as.numeric(punkIndex), # convert Hexadecmal to numeric
-#          fromAddress=paste0("0x", str_sub(fromAddress,-40,-1)), # reshape the adress format to something more conventional
-#          toAddress=paste0("0x", str_sub(toAddress,-40,-1)))
-
-# It is possible to transfer without payement but let's first focus on the real sales.
-# resEtherScanPunkTransfer <- GET("https://api.etherscan.io/api",
-#           query = list(module="logs", 
-#                        action="getLogs", 
-#                        fromBlock="0",
-#                        toBlock="latest",
-#                        address="0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB",
-#                        topic0="0x05af636b70da6819000c49f85b21fa82081c632069bb626f30932034099107d8",
-#                        sort="desc",
-#                        apikey=EtherScanAPIToken)) 
-# 
-# dataEtherScanPunkTransfer <- fromJSON(rawToChar(resEtherScanPunkTransfer$content), flatten=TRUE)$result
-
-
-```
 
 # Tracking the Weird Whales
 
@@ -269,6 +222,7 @@ Network graph:
 2) Faire un graph avec ggnetwork puis montrer qu'on peut l'animer.
 
 A vertex (or node) of a graph is one of the objects that are connected together. The connections between the vertices are called edges (or links). 
+There are several packages available on R to plot network, the most known being *network* and *igraph*. I have a preferences for the former as it gives the possibility to create interactive plot via the *networkDynamic* package. We will first create a simple network and plot it using the *ggraph* package. Although it is possible to plot the network using the base plot functionalities of the *network* package, *ggraph* makes it easier by using the *ggplot2* framework.
 
 ```{r, fig}
 # senderFilter <- summarySender %>%
@@ -288,17 +242,16 @@ dataWeirdWhaleTransferFiltered <- dataWeirdWhaleTransfer %>%
   # filter(fromAddress != "0x0000000000000000000000000000000000000000") %>% #let's remove the minting as it leads to 
   droplevels()
 
-
 dataWeirdWhaleTransferFiltered <- dataWeirdWhaleTransferFiltered %>%
   mutate(timeStampHour = round.POSIXt(timeStamp, "hour")) %>% # The time resolution is seconds. That is nice but it leads to a lot of computation (frames) for our network. Let's round to hours.
   mutate(timeStampHourNumeric = as.numeric(timeStampHour)/3600) %>%
   mutate(timeStampHourNumeric = timeStampHourNumeric-min(timeStampHourNumeric))  
 
 # vertices is a listing of all the addresses involved in the transactions   
-vertices <- tibble(label = factor(unique(c(dataWeirdWhaleTransferFiltered$fromAddress,
-                                           dataWeirdWhaleTransferFiltered$toAddress))))  %>%
-  rowid_to_column("id") # instead of using the addresses to visually identify the vertices, we will use shorter ID numbers 
-
+vertices <- tibble(label = unique(c(dataWeirdWhaleTransferFiltered$fromAddress,
+                                           dataWeirdWhaleTransferFiltered$toAddress))) %>%
+  rowid_to_column("id") %>% # instead of using the addresses to visually identify the vertices, we will use shorter ID numbers 
+  mutate(onset = 0, terminus = max(dataWeirdWhaleTransferFiltered$timeStampHourNumeric))
 
 # edges is a listing of the transactions
 edges <- dataWeirdWhaleTransferFiltered %>%
@@ -308,12 +261,83 @@ edges <- dataWeirdWhaleTransferFiltered %>%
   rename(to = id) 
 
 # This will be useful to create a temporal dynamic network later on. Edges will appear at `onset` and disappear at `terminus.`
-
 edges <- edges %>%
   rename(onset = timeStampHourNumeric) %>% 
   mutate(terminus = max(onset), #  
          tokenId = as.character(tokenId)) %>%
-  select(from, to, tokenId, onset, terminus) 
+  select(from, to, onset, terminus, tokenId) 
+
+# create the network using network
+network <- network(edges,  
+                  vertex.attr = vertices, 
+                   matrix.type="edgelist", 
+                loops=T, 
+                multiple=T, 
+                ignore.eval = F)
+
+pNetwork <- ggraph(network) + 
+  geom_edge_fan(aes(color = tokenId), arrow = arrow(length = unit(6, "pt"), type = "open")) +
+    geom_node_point(color = "black", size = 4) +
+  theme_blank() +
+  geom_node_text(aes(label = id), color = "gold", size = 2, fontface = "bold") 
+pNetwork
+
+# create a dynamic temporal network
+dNetwork <- networkDynamic(edge.spells = edges[,c("onset", "terminus", "from", "to", "tokenId")],
+                           vertex.spells = vertices[,c("onset", "terminus", "id", "label")],
+                           create.TEAs = TRUE)
+
+# plot(network)
+compute.animation(dNetwork, 
+                  # animation.mode='MDSJ',
+                  animation.mode='Graphviz', # Graphviz is the best
+                  slice.par=list(interval = 50, 
+                                 start = 1, 
+                                 end = max(edges$terminus), 
+                                 aggregate.dur = 50, 
+                                 rule='any'),
+                  verbose = T)
+# plot(network, displaylabels=TRUE)
+
+timePrism(dNetwork,at=c(1,10,20),
+          displaylabels=TRUE,planes = TRUE,
+          label.cex=0.5)
+
+timeline(dNetwork)
+
+plot(dNetwork,
+     edge.label=(dNetwork %e% 'tokenId.active'),
+     edge.label.col='blue') 
+
+render.d3movie(dNetwork, 
+               output.mode = 'htmlWidget',
+               vertex.tooltip = paste("<b>Address:</b>", (network %v% 'label')),
+               edge.tooltip = paste("<b>TokenId:</b>", (network %e% 'tokenId')),
+               # displaylabels = TRUE,
+               launchBrowser = T,
+               main='Ethereum transactions of Weird Whales NFTs',
+               # edge.col = function(slice){slice%e%'tokenId.active'},
+               # edge.label = function(slice){slice%e%'tokenId.active'},
+               usearrows = T)
+
+
+
+#To do: filter token involved in more than X transactions instead
+
+
+```
+
+
+```{r}
+# create the network using igraph
+# network1 <- graph_from_data_frame(d = edges, vertices = vertices, directed = TRUE)
+# plot(network1, 
+#      edge.arrow.size = 0.2, 
+#      edge.curved = curve_multiple(network1), 
+#      vertex.label = NA,
+#      vertex.size = 1,
+#      edge.color = as.character(edges$tokenId))
+
 
 # For the temporal dynamic network, we can also make the vertices appear at at `onset` and disappear at `terminus.`
 
@@ -329,95 +353,10 @@ lastAppearanceVertices <- rbind(data.frame(id=edges$from, terminus=edges$terminu
 
 vertices <- vertices %>%
   left_join(firstAppearanceVertices) %>%
-  left_join(lastAppearanceVertices)
-
-
-# mieux maitriser les dataframes
-network <- network(edges[,c("onset","terminus","from","to")],  
-                         vertex.attr = vertices[,c("id", "onset", "terminus")], 
-                   matrix.type="edgelist", 
-                loops=T, 
-                multiple=T, 
-                ignore.eval = F)
-
-# network %v% "label" <- vertices[,"label"]
-# network %e% "tokenId" <- edges[,"tokenId"]
-
-ggNetwork <- ggnetwork(network)
-
-ggplot(ggNetwork, aes(x = x, y = y, xend = xend, yend = yend)) +
-  geom_edges(color = "black") +
-  geom_nodes(color = "black", size = 8) +
-  geom_nodetext(aes(label = label),
-                fontface = "bold") +
-  theme_blank()
-# 
-# #* simple networks ====================================================================
-# simple_edge_df <- data.frame(
-#   from = c("b", "c", "c", "d", "a"),
-#   to = c("a", "b", "a", "a", "b"),
-#   weight = c(1, 1, 2, 2, 3),
-#   stringsAsFactors = FALSE
-# )
-# simple_edge_df
-# 
-# as.network(simple_edge_df)
-# 
-# # simple networks with vertices =======================================================
-# simple_vertex_df <- data.frame(
-#   name = letters[1:5],
-#   residence = c("urban", "rural", "suburban", "suburban", "rural"),
-#   stringsAsFactors = FALSE
-# )
-# simple_vertex_df
-# 
-
-# network <- networkDynamic(edge.spells = data.frame(edges[,c("onset","terminus","from","to")]),
-# vertex.spells = data.frame(vertices[,c("onset","terminus","id")]))
-
-# activate dynamic elements for the tooltips
-network <- activate.vertex.attribute(network, 'label', data.frame(nodes[,c(2)]))
-network <- activate.edge.attribute(network, 'tokenId', data.frame(edges[,c(3)]))
-
-# plot(network)
-compute.animation(network, 
-                  # animation.mode='MDSJ',
-                  animation.mode='Graphviz', # Graphviz is the best
-                  slice.par=list(interval = 50, 
-                                 start = 1, 
-                                 end = max(edges$terminus), 
-                                 aggregate.dur = 50, 
-                                 rule='any'),
-                  verbose = T)
-# plot(network, displaylabels=TRUE)
-
-timePrism(network,at=c(1,10,20),
-          displaylabels=TRUE,planes = TRUE,
-          label.cex=0.5)
-
-timeline(network)
-
-plot(network,
-     edge.label=(network %e% 'tokenId.active'),
-     edge.label.col='blue') 
-
-render.d3movie(network, 
-               output.mode = 'htmlWidget',
-               vertex.tooltip = paste("<b>Address:</b>", (network %v% 'label.active')),
-               # edge.tooltip = paste("<b>TokenId:</b>", (network %e% 'tokenId.active')),
-               # displaylabels = TRUE,
-               launchBrowser = T,
-               main='Ethereum transactions of Weird Whales NFTs',
-               edge.col = function(slice){slice%e%'tokenId.active'},
-               edge.label = function(slice){slice%e%'tokenId.active'},
-               usearrows = T)
-
-
-
-#To do: filter token involved in more than X transactions instead
+  left_join(lastAppearanceVertices) %>%
+  select(id, onset, terminus, label) %>%
+  mutate(label = as.character(label))
 ```
-
-
 
 
 ```{r}
