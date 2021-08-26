@@ -1,5 +1,5 @@
 ---
-title: "Data Science on Blockchain with R. Part II: Tracking CryptoPunk NFTs"
+title: "Data Science on Blockchain with R. Part II: Tracking the NFT transactions"
 author: "By Thomas de Marchin (Senior Manager Statistics and Data Sciences at Pharmalex) and Milana Filatenkova (Manager Statistics and Data Sciences at Pharmalex)"
 date: "XXX2021"
 output: html_document
@@ -10,7 +10,7 @@ rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
 ```
 
-![CryptoPunks are the earliest versions of NFTs (www.larvalabs.com/cryptopunks). Image modified from https://commons.wikimedia.org/wiki/File:Cryptopunks.png.](figures/myCruptoPunks.png)
+![Image from Alina Grubnyak on Unsplash.](figures/photo-1545987796-200677ee1011.jpg)
 
 # Introduction
 
@@ -33,7 +33,21 @@ How to make the blockchain more transparent? Money laundering,... I don't want t
 
 
 
-The Weird Whales project is a collection of 3350 whales which have been programmatically generated from an ocean of combinations, each with unique characteristics and different traits: https://weirdwhalesnft.com/. This was created by 12-year-old programmer named Benyamin Ahmed. The 3,350 computer-generated “Weird Whales” almost instantly sold out based on the heartwarming story and Benyamin made more than 150,000\$. Whales were initially sold at approximately 60\$ but since then, there price has been multiplied by 100...  
+The Weird Whales project is a collection of 3350 whales which have been programmatically generated from an ocean of combinations, each with unique characteristics and different traits: https://weirdwhalesnft.com/. This was created by 12-year-old programmer named Benyamin Ahmed. The 3,350 computer-generated “Weird Whales” almost instantly sold out based on the heartwarming story and Benyamin made more than 150,000\$. Whales were initially sold at approximately 60\$ but since then, there price has been multiplied by 100...  Read this for the whole story: https://www.cnbc.com/amp/2021/08/25/12-year-old-coder-made-6-figures-selling-weird-whales-nfts.html?__twitter_impression=true
+
+```{r, fig.cap=c("Examples of Weird Whale NFTs. These NFTs (token ids 525, 564, 645, 1523, 2968, 1109, 618 and 816) belong to the creator of the collection Benyamin Ahmed (Benoni) who gave us the permission to use them in this article.")}
+
+p1 <- ggdraw() + draw_image("figures/WeirdWhales/525.png", scale = 0.9) 
+p2 <- ggdraw() + draw_image("figures/WeirdWhales/564.png", scale = 0.9)
+p3 <- ggdraw() + draw_image("figures/WeirdWhales/645.png", scale = 0.9)
+p4 <- ggdraw() + draw_image("figures/WeirdWhales/1523.png", scale = 0.9)
+p5 <- ggdraw() + draw_image("figures/WeirdWhales/2968.png", scale = 0.9)
+p6 <- ggdraw() + draw_image("figures/WeirdWhales/1109.png", scale = 0.9)
+p7 <- ggdraw() + draw_image("figures/WeirdWhales/618.png", scale = 0.9)
+p8 <- ggdraw() + draw_image("figures/WeirdWhales/816.png", scale = 0.9)
+p1 + p2 + p3 + p4 + p5 +p6 + p7 + p8 + plot_layout(nrow = 2)
+```
+
 
 # Extracting the data
 
@@ -64,7 +78,6 @@ i <- 0
 
 while(continue == 1){ # We will run trough the blocks (from the earliest mentioning Weird whales to the latest). As soon ...
 i <- i + 1
-print(i)
 if(i == 1){fromBlock = 12857046} #first block mentioning Weird Whale contract
 
 # Get the transfer events from the Weird Whale contract
@@ -173,28 +186,6 @@ tokenIdFilter <- dataWeirdWhaleTransfer %>%
 dataWeirdWhaleTransferFiltered <- dataWeirdWhaleTransfer %>%
   filter(tokenId %in% tokenIdFilter$tokenId) %>%
   droplevels()
-
-# pScatterWeirdWhaleTransfer <- ggplot(aes(x=timeStamp, y=tokenId, group=tokenId, text=tokenId), data = dataWeirdWhaleTransferFiltered) +
-#   geom_point() + geom_line()
-# pScatterWeirdWhaleTransfer <- ggplotly(pScatterWeirdWhaleTransfer, tooltip = "text")
-
-#https://plotly-r.com/supplying-custom-data.html/
-#Encode the images directly in the object 
-dataWeirdWhaleTransferFiltered$image <- purrr::map_chr(
-  dataWeirdWhaleTransferFiltered$tokenId, ~ base64enc::dataURI(file = sprintf("figures/WeirdWhales/%s.png", .x))
-)
-
-# # create the plotly with the embedded NFT image
-# plot_ly(type = 'scatter',
-#         x = ~timeStamp, 
-#             y = ~tokenId, 
-#             customdata = ~image, 
-#             text = ~ paste0("Token ID: ", tokenId), 
-#             hoverinfo = 'text',
-#             mode = "lines+markers", 
-#             split = ~tokenId,
-#             data = dataWeirdWhaleTransferFiltered) %>%
-#   htmlwidgets::onRender(readLines("js/tooltip-image.js")) # this script allows to embed the NFT image when hoovering a point
 ```
 
 
@@ -292,99 +283,9 @@ render.d3movie(dNetwork,
                # edge.label = function(slice){slice%e%'tokenId.active'},
                usearrows = T)
 
-
-
 ```
 
 # Conclusion
 
 so...
 
-# back
-
-
-
-```{r}
-# create the network using igraph
-# network1 <- graph_from_data_frame(d = edges, vertices = vertices, directed = TRUE)
-# plot(network1, 
-#      edge.arrow.size = 0.2, 
-#      edge.curved = curve_multiple(network1), 
-#      vertex.label = NA,
-#      vertex.size = 1,
-#      edge.color = as.character(edges$tokenId))
-
-
-# For the temporal dynamic network, we can also make the vertices appear at at `onset` and disappear at `terminus.`
-# 
-# firstAppearanceVertices <- rbind(data.frame(id=edges$from, onset=edges$onset),
-#                               data.frame(id=edges$to, onset=edges$onset)) %>%
-#   group_by(id) %>%
-#   summarise(onset = min(onset))
-# 
-# lastAppearanceVertices <- rbind(data.frame(id=edges$from, terminus=edges$terminus),
-#                               data.frame(id=edges$to, terminus=edges$terminus)) %>%
-#   group_by(id) %>%
-#   summarise(terminus = max(terminus))
-# 
-# vertices <- vertices %>%
-#   left_join(firstAppearanceVertices) %>%
-#   left_join(lastAppearanceVertices) %>%
-#   select(id, onset, terminus, label) %>%
-#   mutate(label = as.character(label))
-
-# senderFilter <- summarySender %>%
-#   filter(`Number of transactions`>40)
-# 
-# dataWeirdWhaleTransferFiltered <- dataWeirdWhaleTransfer %>%
-#   filter(fromAddress %in% senderFilter$`Sender address`) %>%
-#   droplevels()
-```
-
-
-## Downloading the NFTs
-
-```{r}
-# # Retrieve sold NFTs 
- sequenceTokenIds <- seq(1, 3350, by=50)
-# dataOpenSea <- list()
-# 
-# # The API is limited to 50 observation per call. We have to use a loop to retrieve the 3350 items of the Weird whale collection.
-# for(i in 1:length(sequenceTokenIds)){
-#   print(sequenceTokenIds[i])
-# 
-#   # These 2 steps are necessary to build the "token_ids" part of the URL.
-#   # We can't use the GET "query" option as we need to push an array of token_ids and there is no easy way to do that with that option.
-#   tokenIds <- seq(from=sequenceTokenIds[i], to=sequenceTokenIds[i]+49)
-#   requestTokenIds <- paste0("token_ids=", tokenIds, collapse="&")
-#   request <- paste0("https://api.opensea.io/api/v1/assets?limit=50&asset_contract_address=0x96ed81c7f4406eff359e27bff6325dc3c9e042bd&", requestTokenIds) #build the request URL
-#   resOpenSea <- GET(request)
-#   dataOpenSea[[i]] <- fromJSON(rawToChar(resOpenSea$content), flatten=TRUE)[[1]]
-# }
-# 
-# dataOpenSea <- bind_rows(dataOpenSea) %>% #combine the list in a dataframe
-#   mutate(token_id = as.numeric(token_id)) %>%
-#   arrange(token_id)
-
-# # Download the pictures
-# for(i in 1:nrow(dataOpenSea)){
-#   print(paste("Downloading image:", i))
-#   download.file(url = dataOpenSea$image_preview_url[i], #let's just download the preview, their size is small and resolution is fine for our needs
-#                 destfile = paste0("figures/WeirdWhales/", 
-#                                   dataOpenSea$token_id[i], '.png'), 
-#                 mode = 'wb',
-#                 quiet = TRUE)
-# }
-
-# 
-# samples <- sample(sequenceTokenIds, size=8)
-# p1 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[1], ".png"), scale = 0.9)
-# p2 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[2], ".png"), scale = 0.9)
-# p3 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[3], ".png"), scale = 0.9)
-# p4 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[4], ".png"), scale = 0.9)
-# p5 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[5], ".png"), scale = 0.9)
-# p6 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[6], ".png"), scale = 0.9)
-# p7 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[7], ".png"), scale = 0.9)
-# p8 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[8], ".png"), scale = 0.9)
-# p1 + p2 + p3 + p4 + p5 +p6 + p7 + p8 + plot_layout(nrow = 2)
-```
