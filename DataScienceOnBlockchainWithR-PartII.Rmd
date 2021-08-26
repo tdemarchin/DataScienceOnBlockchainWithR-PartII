@@ -31,84 +31,27 @@ library(ndtv)
 
 How to make the blockchain more transparent? Money laundering,... I don't want to have any problem with the mafia so let's focus on something else (NFT) at the moment.
 
-Code of the CryptoPunk contract: https://etherscan.io/address/0xb47e3cd837ddf8e4c57f05d70ab865de6e193bbb#code
 
-Structure of the event:
-    event Assign(address indexed to, uint256 punkIndex);
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event PunkTransfer(address indexed from, address indexed to, uint256 punkIndex);
-    event PunkOffered(uint indexed punkIndex, uint minValue, address indexed toAddress);
-    event PunkBidEntered(uint indexed punkIndex, uint value, address indexed fromAddress);
-    event PunkBidWithdrawn(uint indexed punkIndex, uint value, address indexed fromAddress);
-    event PunkBought(uint indexed punkIndex, uint value, address indexed fromAddress, address indexed toAddress);
-
-Interesting events:
-
-
-
-topics[0] is the hash of the event signature
- 
-PunkBought(punkIndex, msg.value, seller, msg.sender);
-  topic0 = 0x58e5d5a525e3b40bc15abaa38b5882678db1ee68befd2f60bafe3a7fd06db9e3
-
-// Transfer ownership of a punk to another user without requiring payment
-PunkTransfer(msg.sender, to, punkIndex)
-  topic0 = 0x05af636b70da6819000c49f85b21fa82081c632069bb626f30932034099107d8
-
-
-# Tracking the Weird Whales
 
 The Weird Whales project is a collection of 3350 whales which have been programmatically generated from an ocean of combinations, each with unique characteristics and different traits: https://weirdwhalesnft.com/. This was created by 12-year-old programmer named Benyamin Ahmed. The 3,350 computer-generated “Weird Whales” almost instantly sold out based on the heartwarming story and Benyamin made more than 150,000\$. Whales were initially sold at approximately 60\$ but since then, there price has been multiplied by 100...  
 
-## Downloading the NFTs
+# Extracting the data
 
-```{r}
-# # Retrieve sold NFTs 
- sequenceTokenIds <- seq(1, 3350, by=50)
-# dataOpenSea <- list()
-# 
-# # The API is limited to 50 observation per call. We have to use a loop to retrieve the 3350 items of the Weird whale collection.
-# for(i in 1:length(sequenceTokenIds)){
-#   print(sequenceTokenIds[i])
-# 
-#   # These 2 steps are necessary to build the "token_ids" part of the URL.
-#   # We can't use the GET "query" option as we need to push an array of token_ids and there is no easy way to do that with that option.
-#   tokenIds <- seq(from=sequenceTokenIds[i], to=sequenceTokenIds[i]+49)
-#   requestTokenIds <- paste0("token_ids=", tokenIds, collapse="&")
-#   request <- paste0("https://api.opensea.io/api/v1/assets?limit=50&asset_contract_address=0x96ed81c7f4406eff359e27bff6325dc3c9e042bd&", requestTokenIds) #build the request URL
-#   resOpenSea <- GET(request)
-#   dataOpenSea[[i]] <- fromJSON(rawToChar(resOpenSea$content), flatten=TRUE)[[1]]
-# }
-# 
-# dataOpenSea <- bind_rows(dataOpenSea) %>% #combine the list in a dataframe
-#   mutate(token_id = as.numeric(token_id)) %>%
-#   arrange(token_id)
+This section is about downloading the sales data, as well sale prices. It is very interesting but also a bit technical so if you are only interested by the analysis, you can skip this section.
 
-# # Download the pictures
-# for(i in 1:nrow(dataOpenSea)){
-#   print(paste("Downloading image:", i))
-#   download.file(url = dataOpenSea$image_preview_url[i], #let's just download the preview, their size is small and resolution is fine for our needs
-#                 destfile = paste0("figures/WeirdWhales/", 
-#                                   dataOpenSea$token_id[i], '.png'), 
-#                 mode = 'wb',
-#                 quiet = TRUE)
-# }
+## Transfers
 
+Code of the Weird Whales contract: https://etherscan.io/address/0x96ed81c7f4406eff359e27bff6325dc3c9e042bd#code
+To make it easier to extract information from the blockchain (which can be fairly complicated due to how the information is stored on the blockchain), we can read the events. In Solidity, events are dispatched signals the smart contracts can fire. Any app connected to Ethereum network can listen to these events and act accordingly. Here is a list of recent Weird Whales event: https://etherscan.io/address/0x96ed81c7f4406eff359e27bff6325dc3c9e042bd#events
 
-samples <- sample(sequenceTokenIds, size=8)
-p1 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[1], ".png"), scale = 0.9)
-p2 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[2], ".png"), scale = 0.9)
-p3 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[3], ".png"), scale = 0.9)
-p4 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[4], ".png"), scale = 0.9)
-p5 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[5], ".png"), scale = 0.9)
-p6 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[6], ".png"), scale = 0.9)
-p7 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[7], ".png"), scale = 0.9)
-p8 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[8], ".png"), scale = 0.9)
-p1 + p2 + p3 + p4 + p5 +p6 + p7 + p8 + plot_layout(nrow = 2)
-```
+We are particularly interested by the event Transfer. Every time a transfer of NFT will take place, an event will be stored on the blockchain with that structure: Transfer (index_topic_1 address from, index_topic_2 address to, index_topic_3 uint256 tokenId)
+Describe...
 
+We will therefore extract all transfer events related to Weird Whales. For this, we can filter on the hash signature of this event (also called Topic 0). If you look on Etherscan (https://etherscan.io/tx/0xa677cfc3b4084f7a5f2e5db5344720bb2ca2c0fe8f29c26b2324ad8c8d6c2ba3#eventlog), you will see that topic 0 for this event is "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".
 
 Here is an example of a Weird Whale NFT transaction: https://etherscan.io/tx/0x2b21165a60abe3dfdc94d03fd9daa0671dc9b982e8b7fdf6342ed28967c15cfd#eventlog
+
+Here we outline a process to create a databases containing trade data of the Weird Whales.
 
 
 ```{r}
@@ -157,7 +100,53 @@ dataWeirdWhaleTransfer <- dataWeirdWhaleTransfer %>%
          fromAddress=paste0("0x", str_sub(fromAddress,-40,-1)), # reshape the adress format to something more conventional
          toAddress=paste0("0x", str_sub(toAddress,-40,-1))) %>%
   mutate(tokenId = factor(tokenId, levels=as.character(sort(unique(as.numeric(tokenId))))))
+```
 
+## Sales price
+
+While both the transfer and the sale can be managed by the same contract, it is a bit different on OpenSea. The sale is managed by the *OpenSea* contract and if it it approved (asked price reached), the contract call the *Weird whale* contract which then triggers the transfer. So if we want to know the price at which the NFTs were sold (in addition to the transfer above), we need to extract data from another contract. 
+
+```{r}
+# Get the OrderMatch events from the Weird Whale contract
+resOpenSeaOrderMatch <- GET("https://api.etherscan.io/api",
+          query = list(module="logs",
+                       action="getLogs",
+                       fromBlock="12859414", # before that block, transfer event was for minting
+                       toBlock="latest",
+                       address="0x7be8076f4ea4a4ad08075c2508e481d6c946d12b", # adress of the Open Sea contract
+                       topic0="0xc4109843e0b7d514e4c093114b863f8e7d8d9a458c372cd51bfe526b588006c9", # hash of the OrderMatch event
+                       sort="desc",
+                       apikey=EtherScanAPIToken))
+
+dataOpenSeaOrderMatch <- fromJSON(rawToChar(resOpenSeaOrderMatch$content), flatten=TRUE)$result %>%
+  select(-gasPrice, -gasUsed, -logIndex)
+
+dataOpenSeaOrderMatch <- dataOpenSeaOrderMatch %>%
+  mutate(timeStamp=as.POSIXct(as.numeric(timeStamp), origin="1970-01-01")) %>%
+  mutate(topics = purrr::map(topics, setNames, c("eventHash","fromAddress","toAddress","metadata"))) %>%
+  unnest_wider(topics) %>% # reshape the topic column (list) to get a column for each topics
+  mutate(blockNumber=as.numeric(blockNumber),
+         fromAddress=paste0("0x", str_sub(fromAddress,-40,-1)), # reshape the adress format to something more conventional
+         toAddress=paste0("0x", str_sub(toAddress,-40,-1))) 
+
+# if you look at the call to the contract, the price is encoded in uint256 type in the data field. It is preceded by two others objects, buyHash and sellHash, both in bytes32 types. The uint256 and bytes32 types are both 32 bytes long, which makes 64 Hexadecimal characters. We thus have to take the last 64 characters and convert them to decimal to get the price.
+dataOpenSeaOrderMatch <- dataOpenSeaOrderMatch %>%
+  mutate(price = str_sub(data, start = -64), 
+         price = as.numeric(paste0("0x", price)),
+         price = price / 10^18) # This is expressed in Wei, the smallest denomination of ether. 1 ether = 1,000,000,000,000,000,000 Wei (10\^18).
+
+dataWeirdWhaleFull <- right_join(dataWeirdWhaleTransfer, dataOpenSeaOrderMatch, by="transactionHash")
+```
+
+
+
+# Summary statistics
+
+
+1) Faire un Graph du prix des transactions en fonction du temps. (genre barplot - histogram)
+
+We have data from
+```{r}
 # Summary statistics
 summary(dataWeirdWhaleTransfer$timeStamp)
 
@@ -175,12 +164,7 @@ summarySender <- dataWeirdWhaleTransfer %>%
   summarise(`Number of transactions`=n()) %>%
   rename(`Sender address` = fromAddress) %>%
   arrange(desc(`Number of transactions`))
-```
 
-1) Faire un Graph du prix des transactions en fonction du temps. (genre barplot - histogram)
-
-We have data from
-```{r}
 tokenIdFilter <- dataWeirdWhaleTransfer %>%
   group_by(tokenId) %>%
   summarise(n = n()) %>%
@@ -200,38 +184,27 @@ dataWeirdWhaleTransferFiltered$image <- purrr::map_chr(
   dataWeirdWhaleTransferFiltered$tokenId, ~ base64enc::dataURI(file = sprintf("figures/WeirdWhales/%s.png", .x))
 )
 
-# create the plotly with the embedded NFT image
-plot_ly(type = 'scatter',
-        x = ~timeStamp, 
-            y = ~tokenId, 
-            customdata = ~image, 
-            text = ~ paste0("Token ID: ", tokenId), 
-            hoverinfo = 'text',
-            mode = "lines+markers", 
-            split = ~tokenId,
-            data = dataWeirdWhaleTransferFiltered) %>%
-  htmlwidgets::onRender(readLines("js/tooltip-image.js")) # this script allows to embed the NFT image when hoovering a point
+# # create the plotly with the embedded NFT image
+# plot_ly(type = 'scatter',
+#         x = ~timeStamp, 
+#             y = ~tokenId, 
+#             customdata = ~image, 
+#             text = ~ paste0("Token ID: ", tokenId), 
+#             hoverinfo = 'text',
+#             mode = "lines+markers", 
+#             split = ~tokenId,
+#             data = dataWeirdWhaleTransferFiltered) %>%
+#   htmlwidgets::onRender(readLines("js/tooltip-image.js")) # this script allows to embed the NFT image when hoovering a point
 ```
 
 
-Here we outline a process to create a set of large databases so we have local access to image data and trade data of the cryptopunks,
 
-Network graph: 
-
-
-2) Faire un graph avec ggnetwork puis montrer qu'on peut l'animer.
+# Visualizing the network
 
 A vertex (or node) of a graph is one of the objects that are connected together. The connections between the vertices are called edges (or links). 
 There are several packages available on R to plot network, the most known being *network* and *igraph*. I have a preferences for the former as it gives the possibility to create interactive plot via the *networkDynamic* package. We will first create a simple network and plot it using the *ggraph* package. Although it is possible to plot the network using the base plot functionalities of the *network* package, *ggraph* makes it easier by using the *ggplot2* framework.
 
 ```{r, fig}
-# senderFilter <- summarySender %>%
-#   filter(`Number of transactions`>20)
-# 
-# dataWeirdWhaleTransferFiltered <- dataWeirdWhaleTransfer %>%
-#   filter(fromAddress %in% senderFilter$`Sender address`) %>%
-#   droplevels()
-
 tokenIdFilter <- dataWeirdWhaleTransfer %>%
   group_by(tokenId) %>%
   summarise(n = n()) %>%
@@ -239,7 +212,6 @@ tokenIdFilter <- dataWeirdWhaleTransfer %>%
 
 dataWeirdWhaleTransferFiltered <- dataWeirdWhaleTransfer %>%
   filter(tokenId %in% tokenIdFilter$tokenId) %>%
-  # filter(fromAddress != "0x0000000000000000000000000000000000000000") %>% #let's remove the minting as it leads to 
   droplevels()
 
 dataWeirdWhaleTransferFiltered <- dataWeirdWhaleTransferFiltered %>%
@@ -278,19 +250,19 @@ network <- network(edges,
 pNetwork <- ggraph(network) + 
   geom_edge_fan(aes(color = tokenId), arrow = arrow(length = unit(6, "pt"), type = "open")) +
     geom_node_point(color = "black", size = 4) +
-  theme_blank() +
+   theme_void() +
   geom_node_text(aes(label = id), color = "gold", size = 2, fontface = "bold") 
 pNetwork
 
 # create a dynamic temporal network
-dNetwork <- networkDynamic(edge.spells = edges[,c("onset", "terminus", "from", "to", "tokenId")],
-                           vertex.spells = vertices[,c("onset", "terminus", "id", "label")],
+dNetwork <- networkDynamic(edge.spells = as.data.frame(edges[,c("onset", "terminus", "from", "to", "tokenId")]),
+                           vertex.spells = as.data.frame(vertices[,c("onset", "terminus", "id", "label")]),
                            create.TEAs = TRUE)
 
 # plot(network)
 compute.animation(dNetwork, 
-                  # animation.mode='MDSJ',
-                  animation.mode='Graphviz', # Graphviz is the best
+                   animation.mode='MDSJ',
+                  # animation.mode='Graphviz', # Graphviz is the best
                   slice.par=list(interval = 50, 
                                  start = 1, 
                                  end = max(edges$terminus), 
@@ -305,9 +277,9 @@ timePrism(dNetwork,at=c(1,10,20),
 
 timeline(dNetwork)
 
-plot(dNetwork,
-     edge.label=(dNetwork %e% 'tokenId.active'),
-     edge.label.col='blue') 
+# plot(dNetwork,
+#      edge.label=(dNetwork %e% 'tokenId.active'),
+#      edge.label.col='blue') 
 
 render.d3movie(dNetwork, 
                output.mode = 'htmlWidget',
@@ -322,10 +294,14 @@ render.d3movie(dNetwork,
 
 
 
-#To do: filter token involved in more than X transactions instead
-
-
 ```
+
+# Conclusion
+
+so...
+
+# back
+
 
 
 ```{r}
@@ -340,60 +316,75 @@ render.d3movie(dNetwork,
 
 
 # For the temporal dynamic network, we can also make the vertices appear at at `onset` and disappear at `terminus.`
+# 
+# firstAppearanceVertices <- rbind(data.frame(id=edges$from, onset=edges$onset),
+#                               data.frame(id=edges$to, onset=edges$onset)) %>%
+#   group_by(id) %>%
+#   summarise(onset = min(onset))
+# 
+# lastAppearanceVertices <- rbind(data.frame(id=edges$from, terminus=edges$terminus),
+#                               data.frame(id=edges$to, terminus=edges$terminus)) %>%
+#   group_by(id) %>%
+#   summarise(terminus = max(terminus))
+# 
+# vertices <- vertices %>%
+#   left_join(firstAppearanceVertices) %>%
+#   left_join(lastAppearanceVertices) %>%
+#   select(id, onset, terminus, label) %>%
+#   mutate(label = as.character(label))
 
-firstAppearanceVertices <- rbind(data.frame(id=edges$from, onset=edges$onset),
-                              data.frame(id=edges$to, onset=edges$onset)) %>%
-  group_by(id) %>%
-  summarise(onset = min(onset))
-
-lastAppearanceVertices <- rbind(data.frame(id=edges$from, terminus=edges$terminus),
-                              data.frame(id=edges$to, terminus=edges$terminus)) %>%
-  group_by(id) %>%
-  summarise(terminus = max(terminus))
-
-vertices <- vertices %>%
-  left_join(firstAppearanceVertices) %>%
-  left_join(lastAppearanceVertices) %>%
-  select(id, onset, terminus, label) %>%
-  mutate(label = as.character(label))
+# senderFilter <- summarySender %>%
+#   filter(`Number of transactions`>40)
+# 
+# dataWeirdWhaleTransferFiltered <- dataWeirdWhaleTransfer %>%
+#   filter(fromAddress %in% senderFilter$`Sender address`) %>%
+#   droplevels()
 ```
 
 
+## Downloading the NFTs
+
 ```{r}
-# # Get the OrderMatch events from the Weird Whale contract
-# resOpenSeaOrderMatch <- GET("https://api.etherscan.io/api",
-#           query = list(module="logs", 
-#                        action="getLogs", 
-#                        fromBlock="12859414", # before that block, transfer event was for minting
-#                        toBlock="latest",
-#                        address="0x7be8076f4ea4a4ad08075c2508e481d6c946d12b", # adress of the Open Sea contract
-#                        topic0="0xc4109843e0b7d514e4c093114b863f8e7d8d9a458c372cd51bfe526b588006c9", # hash of the OrderMatch event
-#                        sort="desc",
-#                        apikey=EtherScanAPIToken)) 
+# # Retrieve sold NFTs 
+ sequenceTokenIds <- seq(1, 3350, by=50)
+# dataOpenSea <- list()
 # 
-# dataOpenSeaOrderMatch <- fromJSON(rawToChar(resOpenSeaOrderMatch$content), flatten=TRUE)$result %>%
-#   select(-gasPrice, -gasUsed, -logIndex)
+# # The API is limited to 50 observation per call. We have to use a loop to retrieve the 3350 items of the Weird whale collection.
+# for(i in 1:length(sequenceTokenIds)){
+#   print(sequenceTokenIds[i])
 # 
-# dataOpenSeaOrderMatch <- dataOpenSeaOrderMatch %>% 
-#   mutate(timeStamp=as.POSIXct(as.numeric(timeStamp), origin="1970-01-01")) %>%
-#   unnest_wider(topics) %>% # reshape the topic column (list) to get a column for each topics
-#   rename(`eventHash`=`...1`, #rename as original naming is not very practical
-#          `fromAddress`=`...2`,
-#          `toAddress`=`...3`,
-#          `metadata`=`...4`,
-#          `data`=`data`) %>%
-#   mutate(blockNumber=as.numeric(blockNumber),
-#          fromAddress=paste0("0x", str_sub(fromAddress,-40,-1)), # reshape the adress format to something more conventional
-#          toAddress=paste0("0x", str_sub(toAddress,-40,-1)))
+#   # These 2 steps are necessary to build the "token_ids" part of the URL.
+#   # We can't use the GET "query" option as we need to push an array of token_ids and there is no easy way to do that with that option.
+#   tokenIds <- seq(from=sequenceTokenIds[i], to=sequenceTokenIds[i]+49)
+#   requestTokenIds <- paste0("token_ids=", tokenIds, collapse="&")
+#   request <- paste0("https://api.opensea.io/api/v1/assets?limit=50&asset_contract_address=0x96ed81c7f4406eff359e27bff6325dc3c9e042bd&", requestTokenIds) #build the request URL
+#   resOpenSea <- GET(request)
+#   dataOpenSea[[i]] <- fromJSON(rawToChar(resOpenSea$content), flatten=TRUE)[[1]]
+# }
 # 
-# a <- left_join(dataWeirdWhaleTransfer, dataOpenSeaOrderMatch, by="transactionHash")
+# dataOpenSea <- bind_rows(dataOpenSea) %>% #combine the list in a dataframe
+#   mutate(token_id = as.numeric(token_id)) %>%
+#   arrange(token_id)
+
+# # Download the pictures
+# for(i in 1:nrow(dataOpenSea)){
+#   print(paste("Downloading image:", i))
+#   download.file(url = dataOpenSea$image_preview_url[i], #let's just download the preview, their size is small and resolution is fine for our needs
+#                 destfile = paste0("figures/WeirdWhales/", 
+#                                   dataOpenSea$token_id[i], '.png'), 
+#                 mode = 'wb',
+#                 quiet = TRUE)
+# }
+
 # 
-# 
-# hex_string <- "0x00000000000000000000000000000000000000000000000000000000000000006cb5c489ae0fd5b83bc8ac37481e9e76e1d0cf763e3f03daa06ad581ef74a5240000000000000000000000000000000000000000000000000058d15e17628000"
-# library(stringr)
-# str_sub(hex_string, 64, 0)
-# 
-# library(wkb)
-# hex_raw <- wkb::hex2raw(hex_string)
-# text <- rawToChar(as.raw(strtoi(hex_raw, 16L)))
-# # now i can get the rensaction price by merging with the OrderMatch event from the address 0x7be8076f4ea4a4ad08075c2508e481d6c946d12b https://etherscan.io/tx/0x2b21165a60abe3dfdc94d03fd9daa0671dc9b982e8b7fdf6342ed28967c15cfd#eventlog
+# samples <- sample(sequenceTokenIds, size=8)
+# p1 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[1], ".png"), scale = 0.9)
+# p2 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[2], ".png"), scale = 0.9)
+# p3 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[3], ".png"), scale = 0.9)
+# p4 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[4], ".png"), scale = 0.9)
+# p5 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[5], ".png"), scale = 0.9)
+# p6 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[6], ".png"), scale = 0.9)
+# p7 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[7], ".png"), scale = 0.9)
+# p8 <- ggdraw() + draw_image(paste0("figures/WeirdWhales/", samples[8], ".png"), scale = 0.9)
+# p1 + p2 + p3 + p4 + p5 +p6 + p7 + p8 + plot_layout(nrow = 2)
+```
