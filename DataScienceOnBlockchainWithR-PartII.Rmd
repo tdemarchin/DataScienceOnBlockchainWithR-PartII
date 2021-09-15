@@ -10,7 +10,7 @@ rm(list=ls())
 knitr::opts_chunk$set(echo = T, warning = F, message = F, cache = T)
 ```
 
-![Image from Alina Grubnyak on Unsplash.](figures/photo-1545987796-200677ee1011.jpg)
+![Examples of Weird Whale NFTs. These NFTs (token ids 525, 564, 645, 1523, 2968, 1109, 618 and 816) belong to the creator of the collection Benyamin Ahmed (Benoni) who gave us the permission to show them in this article.](figures/patchwork.png)
 
 # Introduction
 
@@ -30,99 +30,100 @@ library(ndtv)
 
 ***What is the Blockchain:*** A blockchain is a growing list of records, called blocks, that are linked together using cryptography. It is used for recording transactions, tracking assets, and building trust between participating parties. Primarily known for Bitcoin and cryptocurrencies application, Blockchain is now used in almost all domains, including supply chain, healthcare, logistic, identity management... Hundreds of blockchains exist with their own specifications and applications: Bitcoin, Ethereum, Tezos...
 
-***What are NFTs:*** Non-Fungible Tokens are used to represent ownership of unique items. They let us tokenize things like art, collectibles, even real estate. They can only have one official owner at a time and they're secured by the Blockchain, no one can modify the record of ownership or copy/paste a new NFT into existence. You've probably heard of the artist Beeple who sold one of his NFT art for \$69 million. 
+***What are NFTs:*** Non-Fungible Tokens are used to represent ownership of unique items. They let us tokenize things like art, collectibles, even real estate. They can only have one official owner at a time and they're secured by the Blockchain, no one can modify the record of ownership or copy/paste a new NFT into existence. 
 
 ***What is R:*** R language is widely used among statisticians and data miners for developing data analysis software. 
 
-***What is a smart contract:***
+***What is a smart contract:*** Smart contracts are simply programs stored on a blockchain that run when predetermined conditions are met. They typically are used to automate the execution of an agreement so that all participants can be immediately certain of the outcome, without any intermediary’s involvement or time loss. They can also automate a workflow, triggering the next action when conditions are met. An example of a smart contract use case is the lottery: people buy tickets and at a predefined time, a winner is automatically selected, money is transferred to his account, all this without involvement of a third party.  
 
-This is the second article on a serie on Blockchain. Part I focused on how to read the blockchain and we introduced a few concepts. If you haven't read it, I strongly encourage you to do so to get familiar with the tools and terminology we will use in this part II. 
+This is the second article on a series on Blockchain. Part I focused on how to read the blockchain and we introduced a few concepts. If you haven't read it, I strongly encourage you to do so to get familiar with the tools and terminology we will use in this part II:
 https://towardsdatascience.com/data-science-on-blockchain-with-r-afaf09f7578c
 
-I very often hear that blockchain is heavily used by Mafia as they are anonymous and confidential. This is only partially true. While we don't know exactly who is behind an address, the transactions made by this address are visible from everyone. And unless you are very careful, it is practically possible to determine the name behind the address by crossing database for example (here are now companies specialized in doing exactly this). 
+I very often hear that blockchain is heavily used by Mafia as it is anonymous and confidential. This is only partially true. While we don't know exactly who is behind an address, the transactions made by this address are visible from everyone. And unless you are very careful, it is practically possible to determine who behind the address by crossing databases. There are now companies specialized in doing only this. THis is an incredible way to make the world more transparent.
 
-Let's take the Forbes fortune 400 which ranks the world richest people, I guess you tought it is accurate right? Well it is only an estimation! There isn't actually any precise method to know exactly the richness of people. It is possible that someone is richer than Jeff Bezos but nobody knows it because this fortune is hidden. Blockchain makes it possible to easily track all these things. This is an incredible possibility to make the world more transparent.
+We need tools and people able to read, understand, summarize and visualize the blockchain. While you can easily find websites providing statistics on NFTs on the internet, it is sometimes needed to get raw data if you want to do something more specific.
 
-We need tools and people able to read, understand, summarize and visualize the blockchain. 
-I don't want to have any problem with the mafia so let's focus on a hot topic at the moment: the NFTs.
-
-We will look here at the Weird Whale NFTs. The Weird Whale project is a collection of 3350 whales which have been programmatically generated from an ocean of combinations, each with unique characteristics and different traits: https://weirdwhalesnft.com/. This was created by 12-year-old programmer named Benyamin Ahmed. The 3,350 computer-generated “Weird Whales” almost instantly sold out based on the heartwarming story and Benyamin made more than 400,000\$. Whales were initially sold at approximately 60\$ but since then, there price has been multiplied by 100...  Read this for the whole story: https://www.cnbc.com/amp/2021/08/25/12-year-old-coder-made-6-figures-selling-weird-whales-nfts.html?__twitter_impression=T
-
-![Examples of Weird Whale NFTs. These NFTs (token ids 525, 564, 645, 1523, 2968, 1109, 618 and 816) belong to the creator of the collection Benyamin Ahmed (Benoni) who gave us the permission to use them in this article.](figures/patchwork.png)
+I don't want to have any problem with the mafia so let's focus on a hot topic at the moment: the art NFTs. We will look here more specifically at the *Weird Whales* NFTs. The *Weird Whales* project is a collection of 3350 whales which have been programmatically generated from an ocean of combinations, each with unique characteristics and different traits: https://weirdwhalesnft.com/. This project was created by a 12-year-old programmer named Benyamin Ahmed who puts on sale on the famous NFT marketplace *OpenSea*. The 3,350 computer-generated *Weird Whales* almost instantly sold out based on the heartwarming story and Benyamin made more than 400,000\$ in two months. Whales were initially sold at approximately 60\$ but since then, there price has been multiplied by 100...  Read this to learn more about this incredible story: https://www.cnbc.com/amp/2021/08/25/12-year-old-coder-made-6-figures-selling-weird-whales-nfts.html?__twitter_impression=T
 
 # Extracting the data
 
-This section is about downloading the sales data, as well sale prices. It is very interesting but also a bit technical so if you are only interested by the analysis, you can skip this section.
+This section is about downloading the sales data (which tokens were transferred to which address), as well as the sale prices. It is very interesting but also a bit technical so if you are only interested by the analysis, you can skip this section.
 
 ## Transfers
 
-Code of the Weird Whales contract: https://etherscan.io/address/0x96ed81c7f4406eff359e27bff6325dc3c9e042bd#code
-To make it easier to extract information from the blockchain (which can be fairly complicated due to how the information is stored on the blockchain), we can read the events. In Solidity, events are dispatched signals the smart contracts can fire. Any app connected to Ethereum network can listen to these events and act accordingly. Here is a list of recent Weird Whales event: https://etherscan.io/address/0x96ed81c7f4406eff359e27bff6325dc3c9e042bd#events
+The *Weird Whales* are managed by a specific smart contract. This contract is stored on a specific address and you can read its code on EtherScan: https://etherscan.io/address/0x96ed81c7f4406eff359e27bff6325dc3c9e042bd#code
+To make it easier to extract information from the blockchain, which can be fairly complicated due to how the information is stored on the ledger, we can read the events. In Solidity, events are dispatched signals the smart contracts can fire. Any app connected to Ethereum network can listen to these events and act accordingly. Here is a list of recent *Weird Whales* events: https://etherscan.io/address/0x96ed81c7f4406eff359e27bff6325dc3c9e042bd#events
 
-We are particularly interested by the event Transfer. Every time a transfer of NFT will take place, an event will be stored on the blockchain with that structure: Transfer (index_topic_1 address from, index_topic_2 address to, index_topic_3 uint256 tokenId)
-Describe...
+We are particularly interested by the a specific type of event: the transfer. Every time a transfer of a token takes place, an event is stored on the blockchain with that structure: Transfer (index_topic_1 *address from*, index_topic_2 *address to*, index_topic_3 uint256 *tokenId*). As indicated by its names, this event record the address from which the token is transfered,the adress to which it is transfered and the token ID, which goes from 1 to 3350 (as there were 3350 *Weird Whales* generated).
 
-We will therefore extract all transfer events related to Weird Whales. For this, we can filter on the hash signature of this event (also called Topic 0). If you look on Etherscan (https://etherscan.io/tx/0xa677cfc3b4084f7a5f2e5db5344720bb2ca2c0fe8f29c26b2324ad8c8d6c2ba3#eventlog), you will see that topic 0 for this event is "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".
+We will therefore extract all transfer events related to *Weird Whales*. For this, we can filter on the hash signature of this event (also called Topic 0). By doing a bit of reverse engineering on EtherScan (https://etherscan.io/tx/0xa677cfc3b4084f7a5f2e5db5344720bb2ca2c0fe8f29c26b2324ad8c8d6c2ba3#eventlog), we see that topic 0 for this event is "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".
 
-Here is an example of a Weird Whale NFT transaction: https://etherscan.io/tx/0x2b21165a60abe3dfdc94d03fd9daa0671dc9b982e8b7fdf6342ed28967c15cfd#eventlog
-
-Here we outline a process to create a databases containing trade data of the Weird Whales. EtherScan limits the number of result per call to 1000. That's not enough to analyze the Weird Whale transactions as only the minting (process of creation of the token on the blockchain) generates 3350 transaction (1 transaction per NFT mint). And that's without all the subsequent transfers! That's why we use a dirty while loop. Note that if you are ready to pay a bit, there are other blockchain database available without restriction. For example, the Ethereum database is available on Google BigQuery.   
+Below, we outline a process to create a databases containing trade data of the *Weird Whales*. EtherScan limits the number of result per call to 1000. That's not enough to analyze the Weird Whale transactions as only the minting (process of creation of the token on the blockchain) generates 3350 transaction (1 transaction per NFT minted). And that's without all the subsequent transfers! That's why we have to use a dirty while loop. Note that if you are ready to pay a bit, there are other blockchain database available without restriction. For example, the Ethereum database is available on Google BigQuery.   
 
 
 ```{r eval = F}
-# EtherScan requires a token, have a look at their website. Please, use your own token!
+# EtherScan requires a token, have a look at their website. This is my token but please use your own!
 EtherScanAPIToken <- "UJP16VCE9D29XFAA86RWADATJ5K4PBSYD9" 
 
 dataEventTransferList <- list()
 continue <- 1
 i <- 0
 
-while(continue == 1){ # We will run trough the blocks (from the earliest mentioning Weird whales to the latest). As soon ...
+while(continue == 1){ # We will run trough the earliest blocks mentioning Weird whales to the most recent.
   i <- i + 1
-  if(i == 1){fromBlock = 12857046} #first block mentioning Weird Whale contract
+  print(i)
+  if(i == 1){fromBlock = 12856383} #first block mentioning Weird Whale contract
   
   # Get the transfer events from the Weird Whale contract
   resEventTransfer <- GET("https://api.etherscan.io/api",
                           query = list(module = "logs", 
                                        action = "getLogs", 
-                                       fromBlock = fromBlock, #first block mentioning Weird Whale contract
+                                       fromBlock = fromBlock, 
                                        toBlock = "latest",
                                        address = "0x96ed81c7f4406eff359e27bff6325dc3c9e042bd", # address of the Weird Whale contract
-                                       topic0 = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", # hash of the Transfer event
+                                       topic0 = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", # hash of the transfer event
                                        apikey = EtherScanAPIToken)) 
   
   dataEventTransferList[[i]] <- fromJSON(rawToChar(resEventTransfer$content), flatten = T)$result %>%
-    select(-gasPrice, -gasUsed, -logIndex)
+    select(-gasPrice, -gasUsed, -logIndex) # reformat the data in a dataframe
   
   if(i > 1){
     if(all_equal(dataEventTransferList[[i]], dataEventTransferList[[i-1]]) == T){continue <- 0}  
-  } #at some point, we always download the same last transaction
+  } #at some point, we reached the latest transactions and always the same data so we can stop
   
   fromBlock <- max(as.numeric(dataEventTransferList[[i]]$blockNumber)) # increase the block to start looking at for the next iteration
 }
 
-dataEventTransfer <- bind_rows(dataEventTransferList) %>% #coerce list to dataframe
-  distinct() # eliminate potential duplicated rows due to our trick to avoid the 1000 transaction limitation from EtherScan
+dataEventTransfer <- bind_rows(dataEventTransferList) %>% # coerce the list to dataframe
+  distinct() # eliminate potential duplicated rows 
 
-# Do a bit of data management
+# data management
 dataEventTransfer <- dataEventTransfer %>% 
-  mutate(date = as.POSIXct(as.numeric(timeStamp), origin = "1970-01-01")) %>%
+  rename(contractAddress = address) %>%
+  mutate(dateTime = as.POSIXct(as.numeric(timeStamp), origin = "1970-01-01")) %>%
   mutate(topics = purrr::map(topics, setNames, c("eventHash","fromAddress","toAddress","tokenId"))) %>% # it is important to set the names otherwise unnest_wider will print many warning messages.
   unnest_wider(topics) %>% # reshape the topic column (list) to get a column for each topic. 
-  mutate(tokenId = as.character(as.numeric(tokenId)), # convert Hexadecmal to numeric
+  mutate(tokenId = as.character(as.numeric(tokenId)), # convert Hexadecimal to numeric
          blockNumber = as.numeric(blockNumber),
-         fromAddress = paste0("0x", str_sub(fromAddress,-40,-1)), # reshape the adress format to something more conventional
+         fromAddress = paste0("0x", str_sub(fromAddress,-40,-1)), # reshape the address format 
          toAddress = paste0("0x", str_sub(toAddress,-40,-1))) %>%
-  mutate(tokenId = factor(tokenId, levels = as.character(sort(unique(as.numeric(tokenId))))))
+  mutate(tokenId = factor(tokenId, levels = as.character(sort(unique(as.numeric(tokenId)))))) %>%
+  select(-data, -timeStamp, -transactionIndex)
+
+saveRDS(dataEventTransfer, "data/dataEventTransfer.rds")
+```
+
+This is how the Transfer dataset looks like: 
+```{r}
+dataEventTransfer <- readRDS("data/dataEventTransfer.rds")
+glimpse(dataEventTransfer)
 ```
 
 ## Sales price
 
-While both the transfer and the sale can be managed by the same contract, it is a bit different on OpenSea. The sale is managed by the *OpenSea* contract and if it it approved (asked price reached), the contract call the *Weird whale* contract which then triggers the transfer. So if we want to know the price at which the NFTs were sold (in addition to the transfer above), we need to extract data from another contract. 
+While both the transfer and the sales can be managed by the same contract, it is done differently on *OpenSea*. The sale is managed by the *OpenSea* contract and if it it approved (asked price reached), the main *OpenSea* contract calls the *Weird whales* contract which then triggers the transfer. If we want to know the price at which the NFTs were sold (in addition to the transfer discussed above), we need to extract data from this second contract. The sales are recorded by an event named *OrderMatch*.
 
-Note that this loop can take a while to run as we download all the sales prices for all NFT sales on OpenSea, not only the Weird Whale. Knowing that at the time of writing, there were on average 30 transactions per minute on OpenSea, it can take a while to download yes.
-
-
+Note that this loop can take a while to run as we download all the sales prices for all NFT sales on *OpenSea*, not only the *Weird Whales*. Knowing that at the time of writing, there were on average 30 transactions per minute on *OpenSea*, it can take a while to download... This code block is very similar to the one above so if you are unsure about what a line does exactly, read the code comments above.
 
 ```{r eval = F}
 # Get the OrderMatch events from the Weird Whale contract
@@ -130,18 +131,17 @@ dataEventOrderMatchList <- list()
 continue <- 1
 i <- 0
 
-while(continue == 1){ # We will run trough the blocks (from the earliest mentioning Weird whales to the latest). As soon ...
+while(continue == 1){ 
   i <- i + 1
-  # print(i)
-  if(i == 1){fromBlock = 12857046} #first block mentioning Weird Whale contract
-  
+  print(i)
+  if(i == 1){fromBlock = 12856383} 
   
   resEventOrderMatch <- GET("https://api.etherscan.io/api",
                             query = list(module = "logs",
                                          action = "getLogs",
-                                         fromBlock = fromBlock, # before that block, transfer event was for minting
+                                         fromBlock = fromBlock, 
                                          toBlock = "latest",
-                                         address = "0x7be8076f4ea4a4ad08075c2508e481d6c946d12b", # adress of the Open Sea contract
+                                         address = "0x7be8076f4ea4a4ad08075c2508e481d6c946d12b", # address of the Open Sea contract
                                          topic0 = "0xc4109843e0b7d514e4c093114b863f8e7d8d9a458c372cd51bfe526b588006c9", # hash of the OrderMatch event
                                          apikey = EtherScanAPIToken))
   
@@ -150,52 +150,62 @@ while(continue == 1){ # We will run trough the blocks (from the earliest mention
   
   if(i > 1){
     if(all_equal(dataEventOrderMatchList[[i]], dataEventOrderMatchList[[i-1]]) == T){continue <- 0}  
-  } #at some point, we always download the same last transactions
+  } 
   
-  fromBlock <- max(as.numeric(dataEventOrderMatchList[[i]]$blockNumber)) # increase the block to start looking at for the next iteration
+  fromBlock <- max(as.numeric(dataEventOrderMatchList[[i]]$blockNumber)) 
 }
 
-dataEventOrderMatch <- bind_rows(dataEventOrderMatchList) %>% #coerce list to dataframe
-  distinct() # eliminate potential duplicated rows due to our trick to avoid the 1000 transaction limitation from EtherScan
-
+dataEventOrderMatch <- bind_rows(dataEventOrderMatchList) %>% 
+  distinct() 
 
 dataEventOrderMatch <- dataEventOrderMatch %>%
-  mutate(date = as.POSIXct(as.numeric(timeStamp), origin = "1970-01-01")) %>%
   mutate(topics = purrr::map(topics, setNames, c("eventHash","fromAddress","toAddress","metadata"))) %>%
-  unnest_wider(topics) %>% # reshape the topic column (list) to get a column for each topics
-  mutate(blockNumber = as.numeric(blockNumber),
-         fromAddress = paste0("0x", str_sub(fromAddress,-40,-1)), # reshape the address format to something more conventional
-         toAddress = paste0("0x", str_sub(toAddress,-40,-1))) 
+  unnest_wider(topics)
+```
 
-# if you look at the call to the contract, the price is encoded in uint256 type in the data field. It is preceded by two others objects, buyHash and sellHash, both in bytes32 types. The uint256 and bytes32 types are both 32 bytes long, which makes 64 Hexadecimal characters. We thus have to take the last 64 characters and convert them to decimal to get the price.
+If we look at the orderMatch event structure, we see that the price is encoded in uint256 type in the data field. It is preceded by two others fields, buyHash and sellHash, both in bytes32 types. The uint256 and bytes32 types are both 32 bytes long, which makes 64 Hexadecimal characters. We are not interested by the buyHash and sellHash data but only by the price sale. We thus have to retrieve the last 64 characters and convert them to decimal to get the sale price.
+
+![Structure of an orderMatch event.](figures/orderMatchExample.png)
+
+```{r eval = F}
 dataEventOrderMatch <- dataEventOrderMatch %>%
   mutate(priceETH = str_sub(data, start = -64), 
          priceETH = as.numeric(paste0("0x", priceETH)),
-         priceETH = priceETH / 10^18) # This is expressed in Wei, the smallest denomination of ether. 1 ether = 1,000,000,000,000,000,000 Wei (10\^18).
+         priceETH = priceETH / 10^18)  %>% # this is expressed in Wei, the smallest denomination of ether. 1 ether = 1,000,000,000,000,000,000 Wei (10\^18).
+  select(priceETH, transactionHash)
 ```
+
 ## Combine the two events 
 
-Let's now merge the two dataset by the transactionHash of the Weird Whales transfers.
+Let's now merge the two dataset by the transactionHash of the *Weird Whales* transfers.
 
 ```{r, eval = F}
 # Merge the transfer and orderMatch events
-dataWeirdWhale <- left_join(dataEventTransfer, select(dataEventOrderMatch, priceETH, transactionHash), by = "transactionHash")
-# saveRDS(dataWeirdWhale, "data/dataWeirdWhale.rds")
+dataWeirdWhale <- left_join(dataEventTransfer, dataEventOrderMatch, by = "transactionHash")
+
+# Minting does not involve any real "sale" but still cost money. As there is no orderMatch event for minting, the priceETH is NA and we will manually update it to the minting cost. Weird Whales can also be transfered for free (or the cryptocurrency transaction is made outside openSea) and in this case, there is no sale price either. Similarly, we will manually set the price of these transfers to 0 ETH.
+dataWeirdWhale <- dataWeirdWhale %>%
+  mutate(priceETH = case_when(
+    fromAddress == "0x0000000000000000000000000000000000000000" ~ 0.025,
+    is.na(priceETH) ~ 0,
+    TRUE ~ priceETH
+  )
+)
 ```
 
 ## Convert the ETH price in USD
 
-We are working on the Ethereum blockchain. It makes sense that the transaction price are given in ETH. Ethereum / USD rate is highly volatile so if we want to convert ETH to USD, we cannot just apply a multiplicative factor. Since we know the date of transaction, we can just convert using the historical ETH USD price. This time, we won't download the data from EtherScan (you need a pro account for that) but from the Poloniex exchange, which provide a nice API too (and it's free). 
+As we are working on the Ethereum blockchain, the transaction price are given in ETH. Ethereum / USD rate is highly volatile so if we want to convert ETH to USD, we cannot just apply a multiplicative factor. We thus have to download the historical ETH USD price. This time, we won't download the data from EtherScan (you need a pro account for that) but from the Poloniex exchange, which provide free access to this functionality. 
 
-We will use a spline function approximation to smooth and interpolate the conversion rate. The reason is that the resolution of the timestamp of the transaction event is the second while the resolution of the historical price dataset is much lower. We thus need to interpolate.
+We will use a spline function approximation to smooth and interpolate the conversion rate. The reason is that the resolution of the timestamp of the transaction event is the second while the resolution of the historical price dataset is much lower. We thus have to interpolate.
 
 ```{r}
 # Download historical price, see https://docs.poloniex.com/#returnchartdata for more information
 resHistoricalPrice <- GET("https://poloniex.com/public",
                           query = list(command = "returnChartData",
                                        currencyPair = "USDT_ETH",
-                                       start = as.numeric(min(dataWeirdWhale$timeStamp)),
-                                       end = as.numeric(max(dataWeirdWhale$timeStamp)),
+                                       start = as.numeric(min(dataWeirdWhale$dateTime)),
+                                       end = as.numeric(max(dataWeirdWhale$dateTime)),
                                        period = 1800)) # resolution of the dataset. 1800 corresponds to one row for every 30 minutes.
 
 dataHistoricalPrice <- fromJSON(rawToChar(resHistoricalPrice$content), flatten = T)
@@ -206,48 +216,55 @@ dataHistoricalPrice <- dataHistoricalPrice %>%
   rename(conversionRate = weightedAverage)
 
 # try the interpolation spline on the historical conversion rates
-approx <- approx(x=dataHistoricalPrice$date, 
+historicalInterpolationETHUSD <- approx(x=dataHistoricalPrice$date, 
                  y=dataHistoricalPrice$conversionRate, 
                  xout=seq(min(dataHistoricalPrice$date), 
                           max(dataHistoricalPrice$date), 
                           length.out=1000)) %>%
-  bind_rows
+  bind_rows()
 
-# plot the historical conversion rates together with the spline: it works!
+# plot the historical conversion rates together with the spline: it works quite well!
 ggplot(aes(x = date, y = conversionRate), data = dataHistoricalPrice) + 
   geom_point() + 
   scale_x_datetime(date_breaks = "1 week") +
-  geom_line(aes(x = x, y = y), col = "red", data = approx)
+  geom_line(aes(x = x, y = y), col = "red", data = historicalInterpolationETHUSD)
 
-# Utiliser approxfun plutôt?
+# Let's use it to convert ETH to USD
+dataWeirdWhale <- dataWeirdWhale %>%
+  mutate(conversionRate = bind_rows(approx(x = dataHistoricalPrice$date, 
+                 y = dataHistoricalPrice$conversionRate,
+                 xout = dateTime))$y,
+         priceUSD = priceETH * conversionRate
+  )
+
+saveRDS(dataWeirdWhale, "data/dataWeirdWhale.rds")
 ```
-
 
 ## Final dataset
 
 Note that if you didn't manage to download all the data from EtherScan, you can just load the dataset available on the github.
-
+This is how the final dataset looks like: 
 ```{r}
 dataWeirdWhale <- readRDS("data/dataWeirdWhale.rds")
+glimpse(dataWeirdWhale)
 ```
-
 
 # Descriptive statistics
 
-Here are a few summary descriptive statistics: 
+Here are a few summary descriptive statistics on the content of the dataset: 
 ```{r}
 # Summary statistics
 dataWeirdWhale %>%
   summarise(`Number of transactions` = n(),
-            `Unique token` = length(unique(tokenId)),
+            `Unique tokens` = length(unique(tokenId)),
             `Unique senders` = length(unique(fromAddress)),
             `Unique receivers` = length(unique(toAddress)),
-            `Date range` = paste(min(date), max(date), sep = " - "),
-            `Days` = max(date) - min(date)
+            `Date range` = paste(min(dateTime), max(dateTime), sep = " - "),
+            `Duration` = max(dateTime) - min(dateTime)
             ) 
 ```
 
-We can also determine the number of transactions per address. The first address (0x00..) is not really an address, it refers to the minting of the NFTs. If we omit that one, we see that some addresses have been involved in up to 200 transactions! 
+Let's now determine the number of transactions per address. The first address (0x00..) is not really an address, it refers to the minting of the NFTs. If we omit that one, we see that some addresses have been involved in more than 200 transactions! 
 
 ```{r}
 # Summary statistics by address
@@ -258,13 +275,13 @@ tibble(address = c(dataWeirdWhale$fromAddress, dataWeirdWhale$toAddress)) %>%
   arrange(desc(`Number of transactions`))
 ```
 
-Let's now visualize the price transactions, irrespective of the token ID. We see a high variability in the first few days. This is followed by a quieter period and we can observe the beginning of an upward period in the last days of August. This price increase match to an intensive activity on the social media as the creator story become viral. We even see one transaction close to 8 ETH, this corresponds to an increase of 4000\% compared to the initial price of 0.2 ETH!
+Let's now visualize the price transactions, irrespective of the token ID. We see a high variability in the first few days. This is followed by a quieter period and we can observe the beginning of an upward period in the last days of August. This price increase match to an intensive activity on the social media as the creator story become viral. We even see one transaction close to 25000 USD, this corresponds to an increase of about 55555\% compared to the initial price of 45 USD!
 
 ```{r}
-ggplot(aes(x = date, y = price), data = dataWeirdWhale) +
+ggplot(aes(x = dateTime, y = priceUSD), data = dataWeirdWhale) +
   geom_point() + 
   scale_x_datetime(date_breaks = "1 week") +
-  labs(y = "Price (ETH)", x = "Date")
+  labs(y = "Price (USD)", x = "Date")
 ```
 
 # Check this
@@ -378,9 +395,11 @@ so...
 
 <https://etherscan.io/>
 
-<https://ethereum.org/en/nft>
+<https://ethereum.org/en>
 
 <https://www.r-bloggers.com/>
+
+<https://www.ibm.com/topics/smart-contracts>
 
 Network:
 
