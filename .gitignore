@@ -2,3 +2,6 @@
 review/
 agreement/
 miscellaneous/
+*.RData
+*.rdx
+*.rdb

@@ -1,8 +1,10 @@
 ---
 title: "Data Science on Blockchain with R. Part II: Tracking the NFTs"
 author: "By Thomas de Marchin and Milana Filatenkova"
-date: "XXX2021"
-output: html_document
+date: "OCTOBER 2021"
+output: 
+  html_document:
+    number_sections: true
 ---
 
 ```{r setup, include = F}
@@ -12,38 +14,39 @@ knitr::opts_chunk$set(echo = T, warning = F, message = F, cache = T)
 
 **Thomas is Senior Data Scientist at Pharmalex. He is passionate about the incredible possibility that blockchain technology offers to make the world a better place. You can contact him on [Linkedin](https://www.linkedin.com/in/tdemarchin/) or [Twitter](https://twitter.com/tdemarchin).**
 
-**Milana is Data Scientist at Pharmalex. She is passionate about the power of analytical tools to discover the truth about the world around us and guide decision making. You can contact her on [Linkedin](LIEN).**
+**Milana is Data Scientist at Pharmalex. She is passionate about the power of analytical tools to discover the truth about the world around us and guide decision making. You can contact her on [Linkedin](https://www.linkedin.com/in/mfilatenkova/).**
 
-![Examples of Weird Whale NFTs. These NFTs (token ids 525, 564, 645, 1523, 2968, 1109, 618 and 816) belong to the creator of the collection Benyamin Ahmed (Benoni) who gave us the permission to show them in this article.](figures/patchwork.png)
+![Examples of Weird Whale NFTs. These NFTs (token ids 525, 564, 618, 645, 816, 1109, 1523 and 2968) belong to the creator of the collection Benyamin Ahmed (Benoni) who gave us the permission to show them in this article.](figures/patchwork.png)
 
 # Introduction
 
-***What is the Blockchain:*** A blockchain is a growing list of records, called blocks, that are linked together using cryptography. It is used for recording transactions, tracking assets, and building trust between participating parties. Primarily known for Bitcoin and cryptocurrencies application, Blockchain is now used in almost all domains, including supply chain, healthcare, logistic, identity management... Hundreds of blockchains exist with their own specifications and applications: Bitcoin, Ethereum, Tezos...
+***What is the Blockchain:*** A blockchain is a growing list of records, called blocks, that are linked together using cryptography. It is used for recording transactions, tracking assets, and building trust between participating parties. Primarily known for Bitcoin and cryptocurrencies application, Blockchain is now used in almost all domains, including supply chain, healthcare, logistic, identity management... Some blockchains are public and can be accessed from everyone while some are private. Hundreds of blockchains exist with their own specifications and applications: Bitcoin, Ethereum, Tezos...  
 
-***What are NFTs:*** Non-Fungible Tokens are used to represent ownership of unique items. They let us tokenize things like art, collectibles, even real estate. They can only have one official owner at a time and they're secured by the Blockchain, no one can modify the record of ownership or copy/paste a new NFT into existence. 
+***What are NFTs:*** Non-Fungible Tokens are used to represent ownership of unique items. They let us tokenize things like art, collectibles, patents, even real estate. They can only have one official owner at a time and they're secured by the Blockchain, no one can modify the record of ownership or copy/paste a new NFT into existence. 
 
 ***What is R:*** R language is widely used among statisticians and data miners for developing data analysis software. 
 
-***What is a smart contract:*** Smart contracts are simply programs stored on a blockchain that run when predetermined conditions are met. They typically are used to automate the execution of an agreement so that all participants can be immediately certain of the outcome, without any intermediary’s involvement or time loss. They can also automate a workflow, triggering the next action when conditions are met. An example of a smart contract use case is the lottery: people buy tickets and at a predefined time, a winner is automatically selected, money is transferred to his account, all this without involvement of a third party.  
+***What is a smart contract:*** Smart contracts are simply programs stored on a blockchain that run when predetermined conditions are met. They typically are used to automate the execution of an agreement so that all participants can be immediately certain of the outcome, without any intermediary’s involvement or time loss. They can also automate a workflow, triggering the next action when conditions are met. An example of a smart contract use case is the lottery: people buy tickets and at a predefined time, a winner is automatically selected and money is transferred to his account, all this without involvement of a third party.  
 
 This is the second article on a series on Blockchain. Part I focused on how to read the blockchain and we introduced a few concepts. If you haven't read it, I strongly encourage you to do so to get familiar with the tools and terminology we will use in this second article: [Part I](https://towardsdatascience.com/data-science-on-blockchain-with-r-afaf09f7578c).
 
-I very often hear that blockchain is heavily used by Mafia as it is anonymous and confidential. This is only partially true. While we don't know exactly who is behind an address, the transactions made by this address are visible from everyone. And unless you are very careful, it is practically possible to determine who behind the address by crossing databases. There are now companies specialized in doing only this. THis is an incredible way to make the world more transparent.
+It is not uncommon to hear that cryptocurrencies is heavily used by Mafia as it is anonymous and confidential. This is only partially true. While we don't know exactly who is behind an address, the transactions made by this address are visible from everyone. And unless you are very careful, it is practically possible to determine who behind the address by crossing databases. There are now companies specialized in doing only this. This is an incredible way to make the world more transparent.
+Blockchain has the potential to resolve major problems the world currently face. Take for example the cacao culture in Ivory Coast. The Country lost more than 60\% of its "protected" forests during the last 25 years despite the engagement of the agribusiness to fight against deforestation. The main reason for the inefficacy of current strategies to protect wild forests is that it is extremely difficult to trace where the cocoa beans have been grown, the existing traceability solutions being easily manipulated. Blockchain could help to solve this issue. In the pharmaceutical world, blockchain has also the potential to improve many aspects such as tracking the supply chain and the manufacturing or securing the clinical trial data management, for example.      
 
-We need tools and people able to read, understand, summarize and visualize the blockchain. While you can easily find websites providing statistics on NFTs on the internet, it is sometimes needed to get raw data if you want to do something more specific.
+The question we will cover in this article is how to extract and visualize the blockchain transactions. We will explore some tools available in R. I don't want to have any problem with the mafia so let's focus on a hot topic at the moment: the art NFTs. We will look here more specifically at the *Weird Whales* NFTs but we could look at any NFTs. This can of course be used to investigate anything stored on the blockchain. 
 
-I don't want to have any problem with the mafia so let's focus on a hot topic at the moment: the art NFTs. We will look here more specifically at the *Weird Whales* NFTs. The *Weird Whales* project is a collection of 3350 whales which have been programmatically generated from an ocean of combinations, each with unique characteristics and different traits: https://weirdwhalesnft.com/. This project was created by a 12-year-old programmer named Benyamin Ahmed who puts on sale on the famous NFT marketplace *OpenSea*. The 3,350 computer-generated *Weird Whales* almost instantly sold out based on the heartwarming story and Benyamin made more than 400,000\$ in two months. Whales were initially sold at approximately 60\$ but since then, there price has been multiplied by 100...  [Read this](https://www.cnbc.com/amp/2021/08/25/12-year-old-coder-made-6-figures-selling-weird-whales-nfts.html?__twitter_impression=T) to learn more about this incredible story.
+The *Weird Whales* project is a collection of 3350 whales which have been programmatically generated from an ocean of combinations, each with unique characteristics and different traits: https://weirdwhalesnft.com/. This project was created by a 12-year-old programmer named Benyamin Ahmed who puts on sale on the famous NFT marketplace *OpenSea*. The 3,350 computer-generated *Weird Whales* almost instantly sold out based on the heartwarming story and Benyamin made more than 400,000\$ in two months. Whales were initially sold at approximately 60\$ but since then, there price has been multiplied by 100...  Read  [this](https://www.cnbc.com/2021/08/25/12-year-old-coder-made-6-figures-selling-weird-whales-nfts.html) to learn more about this incredible story.
 
-# Extracting the data
+# Data
 
-This section is about downloading the sales data (which tokens were transferred to which address), as well as the sale prices. It is very interesting but also a bit technical so if you are only interested by the analysis, you can skip this section.
+This section is about downloading the sales data (which tokens were transferred to which address), as well as the sale prices. **It is very interesting but also a bit technical so if you are only interested by the analysis, you can skip this section and go directly to section 3.**
 
 ## Transfers
 
 The *Weird Whales* are managed by a specific smart contract. This contract is stored on a specific address and you can read its code on EtherScan: https://etherscan.io/address/0x96ed81c7f4406eff359e27bff6325dc3c9e042bd#code
 To make it easier to extract information from the blockchain, which can be fairly complicated due to how the information is stored on the ledger, we can read the events. In Solidity, events are dispatched signals the smart contracts can fire. Any app connected to Ethereum network can listen to these events and act accordingly. Here is a list of recent *Weird Whales* events: https://etherscan.io/address/0x96ed81c7f4406eff359e27bff6325dc3c9e042bd#events
 
-We are particularly interested by the a specific type of event: the transfer. Every time a transfer of a token takes place, an event is stored on the blockchain with that structure: Transfer (index_topic_1 *address from*, index_topic_2 *address to*, index_topic_3 uint256 *tokenId*). As indicated by its names, this event record the address from which the token is transfered,the adress to which it is transfered and the token ID, which goes from 1 to 3350 (as there were 3350 *Weird Whales* generated).
+We are particularly interested by the a specific type of event: the transfer. Every time a transfer of a token takes place, an event is stored on the blockchain with that structure: Transfer (index_topic_1 *address from*, index_topic_2 *address to*, index_topic_3 uint256 *tokenId*). As indicated by its names, this event record the address from which the token is transferred, the address to which it is transferred and the token ID, which goes from 1 to 3350 (as there were 3350 *Weird Whales* generated).
 
 We will therefore extract all transfer events related to *Weird Whales*. For this, we can filter on the hash signature of this event (also called Topic 0). By doing a bit of reverse engineering on EtherScan (https://etherscan.io/tx/0xa677cfc3b4084f7a5f2e5db5344720bb2ca2c0fe8f29c26b2324ad8c8d6c2ba3#eventlog), we see that topic 0 for this event is "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".
 
@@ -51,6 +54,7 @@ Below, we outline a process to create a databases containing trade data of the *
 
 ```{r}
 # First, let's load a few useful packages
+library(knitr)
 library(tidyverse)
 library(httr)
 library(jsonlite)
@@ -167,7 +171,7 @@ dataEventOrderMatch <- dataEventOrderMatch %>%
 
 If we look at the orderMatch event structure, we see that the price is encoded in uint256 type in the data field. It is preceded by two others fields, buyHash and sellHash, both in bytes32 types. The uint256 and bytes32 types are both 32 bytes long, which makes 64 Hexadecimal characters. We are not interested by the buyHash and sellHash data but only by the price sale. We thus have to retrieve the last 64 characters and convert them to decimal to get the sale price.
 
-![Structure of an orderMatch event.](figures/orderMatchExample.png)
+![Figure 1: Structure of an orderMatch event](figures/orderMatchExample.png)
 
 ```{r eval = F}
 dataEventOrderMatch <- dataEventOrderMatch %>%
@@ -203,7 +207,7 @@ As we are working on the Ethereum blockchain, the transaction price are given in
 
 We will use a spline function approximation to smooth and interpolate the conversion rate. The reason is that the resolution of the timestamp of the transaction event is the second while the resolution of the historical price dataset is much lower. We thus have to interpolate.
 
-```{r}
+```{r, fig.height = 10, fig.width = 15, fig.cap = "Figure 2: Historical ETH to USD rate. Red line: spline."}
 dataWeirdWhales <- readRDS("data/dataWeirdWhales.rds")
 
 # download historical price, see https://docs.poloniex.com/#returnchartdata for more information
@@ -219,28 +223,32 @@ dataHistoricalPrice <- fromJSON(rawToChar(resHistoricalPrice$content), flatten =
 dataHistoricalPrice <- dataHistoricalPrice %>%
   select(date, weightedAverage) %>% # we need only the price per date
   mutate(date = as.POSIXct(as.numeric(date), origin = "1970-01-01")) %>%
-  rename(conversionRate = weightedAverage)
+  rename(ETHtoUSDRate = weightedAverage)
 
 # try the interpolation spline on the historical conversion rates
 historicalInterpolationETHUSD <- approx(x=dataHistoricalPrice$date, 
-                 y=dataHistoricalPrice$conversionRate, 
+                 y=dataHistoricalPrice$ETHtoUSDRate, 
                  xout=seq(min(dataHistoricalPrice$date), 
                           max(dataHistoricalPrice$date), 
                           length.out=1000)) %>%
   bind_rows()
 
 # plot the historical conversion rates together with the spline: it works quite well!
-ggplot(aes(x = date, y = conversionRate), data = dataHistoricalPrice) + 
+pETHUSDConversionRate <- ggplot(aes(x = date, y = ETHtoUSDRate), data = dataHistoricalPrice) + 
   geom_point() + 
-  scale_x_datetime(date_breaks = "1 week") +
+  scale_x_datetime(date_breaks = "2 week") +
   geom_line(aes(x = x, y = y), col = "red", data = historicalInterpolationETHUSD)
+ggplotly(pETHUSDConversionRate)
+```
 
+Let's now use our spline to convert the ETH in USD for our *WeirdWhales* transactions.
+```{r, fig.cap = "Figure 2: Historical ETH to USD rate. Red line: spline."}
 # let's use it to convert ETH to USD
 dataWeirdWhales <- dataWeirdWhales %>%
-  mutate(conversionRate = bind_rows(approx(x = dataHistoricalPrice$date, 
-                 y = dataHistoricalPrice$conversionRate,
+  mutate(ETHtoUSDRate = bind_rows(approx(x = dataHistoricalPrice$date, 
+                 y = dataHistoricalPrice$ETHtoUSDRate,
                  xout = dateTime))$y,
-         priceUSD = priceETH * conversionRate
+         priceUSD = round(priceETH * ETHtoUSDRate,3)
   )
 
 saveRDS(dataWeirdWhales, "data/dataWeirdWhalesFinal.rds")
@@ -255,7 +263,10 @@ dataWeirdWhales <- readRDS("data/dataWeirdWhalesFinal.rds")
 glimpse(dataWeirdWhales)
 ```
 
-# Descriptive statistics
+
+# Analysis
+
+## Descriptive statistics
 
 Here are a few summary descriptive statistics on the content of the dataset: 
 ```{r}
@@ -267,11 +278,14 @@ dataWeirdWhales %>%
             `Unique receivers` = length(unique(toAddress)),
             `Date range` = paste(min(dateTime), max(dateTime), sep = " - "),
             `Duration` = max(dateTime) - min(dateTime),
-            `Total sales volume (USD)` = sum(priceUSD, na.rm = TRUE)
-            ) 
+            `Total sales volume (USD)` = sum(priceUSD, na.rm = TRUE),
+            `Average sale price (USD)` = mean(priceUSD, na.rm = TRUE)
+            )  %>%
+  t() %>%
+  kable(caption = "Table 1: Summary statistics on the content of the dataset.")
 ```
 
-Let's now determine the number of transactions per address. The first address (0x00..) is not really an address, it refers to the minting of the NFTs. If we omit that one, we see that some addresses have been involved in more than 200 transactions! 
+We can determine the number of transactions per address. The first address (0x00..) is not really an address, it refers to the minting of the NFTs. If we omit that one, we see that some addresses have been involved in more than 200 transactions! 
 
 ```{r}
 # summary statistics by address
@@ -282,25 +296,27 @@ tibble(address = c(dataWeirdWhales$fromAddress, dataWeirdWhales$toAddress)) %>%
   arrange(desc(`Number of transactions`))
 ```
 
-Let's now visualize the price transactions, irrespective of the token ID. We see a high variability in the first few days. This is followed by a quieter period and we can observe the beginning of an upward period in the last days of August. This price increase match to an intensive activity on the social media as the creator story become viral. We even see one transaction close to 25000 USD, this corresponds to an increase of about 55555\% compared to the initial price of 45 USD!
+Let's now visualize the price transactions as a function of the time, irrespective of the token ID. We see a high variability in the first few days. This is followed by a quieter period and we can observe the beginning of an upward period in the last days of August. This price increase match to an intensive activity on the social media as the creator story become viral. We even see one transaction close to 25000 USD, this corresponds to an increase of about 55555\% compared to the initial price of 45 USD!
 
-```{r}
-ggplot(aes(x = dateTime, y = priceUSD), data = dataWeirdWhales) +
+```{r fig.height = 10, fig.width = 15, fig.cap = "Figure 3: Sales price (USD) evolution for the *Weird Whales* NFTs transactions."}
+pSalesPrice <- ggplot(aes(x = dateTime, y = priceUSD), data = dataWeirdWhales) +
   geom_point() + 
-  scale_x_datetime(date_breaks = "1 week") +
+  scale_x_datetime(date_breaks = "2 week") +
   labs(y = "Price (USD)", x = "Date")
+
+ggplotly(pSalesPrice)
 ```
 
-# Visualizing the network
+## Visualizing the network
 
-Up to now, we looked at summary statistics on the transactions price. But how to visualize the transactions exactly, knowing that each NFT is unique and needs to be differentiated from the others? The dataset we assembled is perfectly adapted to be plotted as a network. Networks are described by vertex and edges. A vertex (or node) of a graph is one of the objects that are connected together. The connections between the vertices are called edges (or links). 
+Up to now, we looked at summary statistics on the transactions price. But how to visualize the transactions exactly, knowing that each NFT is unique and needs to be differentiated from the others? The dataset we assembled is perfectly adapted to be plotted as a network. Networks are described by vertex and edges. A vertex (or node) of a graph is one of the objects that are connected together. This will be here the wallet addresses involved in the transactions. The connections between the vertices are called edges (or links). This will be here the transactions. 
 
-There are several class and corresponding packages available on R to plot networks, the most famous being *network* and *igraph*. Have a look at the References section for a few amazing tutorials on this topic. I have a preferences for the *network* package as it gives the possibility to create interactive plots via the *networkDynamic* package. On top of that, other packages have been developed to facilitate manipulation and plotting of such objects. 
+There are several class and corresponding packages available on R to plot networks, the most famous being *network* and *igraph*. Have a look at the References section for a few amazing tutorials on this topic. I have a preferences for the *network* package as it gives the possibility to create interactive plots via the *networkDynamic* and *ndtv* packages. On top of that, other packages have been developed to facilitate manipulation and plotting of such objects, such as the *ggraph* package which brings the *ggplot2* framework to the network class.
 
-Let's give a try! We will first create a simple network and plot it as a static network using the *ggraph* package. The *ggraph* package brings the *ggplot2* framework to the network class.
+Let's give a try! We will first create a simple static (i.e. without the temporal dimension) network and plot it using the *ggraph* package. There are too many data to display in one plot so we will subset our data by plotting only the NFTs involved in more than 7 transactions.
 
 ```{r, fig.height = 15, fig.width = 15}
-# There are too many data to display in a plot. We will subset on the NFTs which are involved in more than 7 transactions.
+# subset the dataset
 tokenIdFilter <- dataWeirdWhales %>%
   group_by(tokenId) %>%
   summarise(n = n()) %>%
@@ -310,7 +326,7 @@ dataWeirdWhalesFiltered <- dataWeirdWhales %>%
   filter(tokenId %in% tokenIdFilter$tokenId) %>%
   droplevels()
 
-# restructure the timing 
+# restructure the timing to create a temporak network (below)
 dataWeirdWhalesFiltered <- dataWeirdWhalesFiltered %>%
   mutate(dateHour = round.POSIXt(dateTime, "hour")) %>% # The time resolution is seconds. That's nice but it leads to a lot of computation (frames) for our network. Let's round to hours.
   mutate(dateHourNumeric = as.numeric(dateHour)/3600) %>%
@@ -330,12 +346,12 @@ edges <- dataWeirdWhalesFiltered %>%
   left_join(vertices, by = c("toAddress" = "label")) %>%
   rename(to = id) 
 
-# This will be useful to create a temporal dynamic network later on. Edges will appear at `onset` and disappear at `terminus.`
+# This will be useful to create a temporal dynamic network (below). Edges will appear at `onset` and disappear at `terminus.`
 edges <- edges %>%
   rename(onset = dateHourNumeric) %>% 
   mutate(terminus = max(onset), #  
          tokenId = as.character(tokenId)) %>%
-  select(from, to, onset, terminus, tokenId) 
+  select(from, to, onset, terminus, tokenId, priceUSD) 
 
 # create the network using network
 network <- network(edges,  
@@ -344,36 +360,51 @@ network <- network(edges,
                 loops = T, 
                 multiple = T, 
                 ignore.eval = F)
+```
 
-# plot it as a static network using gggraph
+We can now plot our network. We see that all transactions originate from the minting address (1). Some addresses are involved in multiple transactions and that's why we see several (curved) edges for these ones. We also see that some token were transferred to one address and then sent back to the sender. 
+
+```{r, fig.height = 20, fig.width = 20, fig.caption = "Figure 4: Static network of the WheirdWhales NFTs transactions. Each address is represented by a node (circle) and the transations are represented by the edges (lines). The edge color refers to the token ID."}
 pNetwork <- ggraph(network) + 
   geom_edge_fan(aes(color = tokenId), arrow = arrow(length = unit(6, "pt"), type = "open")) +
-  geom_node_point(color = "black", size = 4) +
+  geom_node_point(color = "black", size = 8) +
   theme_void() +
-  geom_node_text(aes(label = id), color = "gold", size = 2, fontface = "bold") 
+  geom_node_text(aes(label = id), color = "gold", size = 3, fontface = "bold") 
 pNetwork
 ```
 
-Let's now use the timestamp of the transaction to add a temporal dimension to our network. For this, we will use the amazing *networkDynamic* package. This package will create an animation which can be rendered directly in the browser. Edges and vertices can be clicked to show more information about the address and the token involved in any transaction.
+Let's now use the timestamp of the transaction to add a temporal dimension to our network. For this, we will use the amazing *networkDynamic* package.
 
-```{r, fig.height = 15, fig.width = 15}
+```{r}
 # create a dynamic temporal network
 dNetwork <- networkDynamic(edge.spells = as.data.frame(edges[,c("onset", "terminus", "from", "to", "tokenId")]),
                            vertex.spells = as.data.frame(vertices[,c("onset", "terminus", "id", "label")]),
                            create.TEAs = T)
+```
+
+We can create a timeline plot showing the **frequence** of the activity. We see that 2/3 of the transactions happened very shortly after the NFT's creation. This is followed by a relatively calm period and then a very active period near the end.
+
+```{r, fig.height = 10, fig.width = 15, fig.cap = "Figure 5: Timeline plot showing the frequence of the transations. Each horizontal line corresponds to a transaction."}
+# timeline plots are useful to debug the animation
+timeline(dNetwork, 
+         plot.vertex.spells = FALSE, 
+         cex = 1,
+         displaylabels = FALSE)
+```
+
+Below, we create an amazing animation which can be rendered directly in the browser. Edges and vertices can be clicked to show more information about the address and the tokens involved in the transactions.  
+
+```{r, fig.height = 15, fig.width = 15, fig.cap = "Figure 6: Animated network of the WheirdWhales NFTs transactions. Each address is represented by a node (circle) and the transations are represented by the edges (lines). The edge color refers to the token ID. Edges and vertices can be clicked to show more information about the address and the tokens involved in the transactions."}
 
 # compute a sequence of layout for the rendering (this can take some time)
 compute.animation(dNetwork, 
                   animation.mode = 'MDSJ',
-                  slice.par = list(interval = 50, 
+                  slice.par = list(interval = 25, 
                                  start = 1, 
                                  end = max(edges$terminus), 
-                                 aggregate.dur = 50, 
+                                 aggregate.dur = 25, 
                                  rule = 'any'),
                   verbose = F)
-
-# timeline plots are useful to debug the animation
-#timeline(dNetwork)
 
 render.d3movie(dNetwork, 
                output.mode = 'htmlWidget',
@@ -382,14 +413,13 @@ render.d3movie(dNetwork,
                launchBrowser = T,
                main = 'Transactions of Weird Whales NFTs',
                edge.col = function(slice){slice%e%'tokenId'},
-               usearrows = T,
+               usearrows = F,
                verbose = F)
-
 ```
 
 # Conclusion
 
-so...
+This article is an introduction into how to visualize the blockchain transactions. Here, we have shown an example of how to download and plot a network of the transactions associated to the *WeirdWhales* NFTs. Please contact us if you have any question or request! **Que dire d'autre**?
 
 **Note that the code used to generate this article is available on my Github: https://github.com/tdemarchin/DataScienceOnBlockchainWithR-PartII**
 
@@ -397,13 +427,15 @@ so...
 
 # References
 
-<https://etherscan.io/>
+Powered by Etherscan.io and Poloniex APIs: 
+
+  <https://etherscan.io/>
+
+  <https://docs.poloniex.com/>
 
 <https://ethereum.org/en>
 
 <https://www.r-bloggers.com/>
-
-<https://www.ibm.com/topics/smart-contracts>
 
 Network:
 
