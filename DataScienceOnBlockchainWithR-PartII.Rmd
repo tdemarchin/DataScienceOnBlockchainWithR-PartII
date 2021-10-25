@@ -9,7 +9,7 @@ output:
 
 ```{r setup, include = F}
 rm(list=ls())
-knitr::opts_chunk$set(echo = T, warning = F, message = F, cache = T)
+knitr::opts_chunk$set(echo = T, warning = F, message = F, cache = T, out.width = '100%')
 ```
 
 **Thomas is Senior Data Scientist at Pharmalex. He is passionate about the incredible possibility that blockchain technology offers to make the world a better place. You can contact him on [Linkedin](https://www.linkedin.com/in/tdemarchin/) or [Twitter](https://twitter.com/tdemarchin).**
@@ -22,33 +22,32 @@ knitr::opts_chunk$set(echo = T, warning = F, message = F, cache = T)
 
 ***What is the Blockchain:*** A blockchain is a growing list of records, called blocks, that are linked together using cryptography. It is used for recording transactions, tracking assets, and building trust between participating parties. Primarily known for Bitcoin and cryptocurrencies application, Blockchain is now used in almost all domains, including supply chain, healthcare, logistic, identity management... Some blockchains are public and can be accessed from everyone while some are private. Hundreds of blockchains exist with their own specifications and applications: Bitcoin, Ethereum, Tezos...  
 
-***What are NFTs:*** Non-Fungible Tokens are used to represent ownership of unique items. They let us tokenize things like art, collectibles, patents, even real estate. They can only have one official owner at a time and they're secured by the Blockchain, no one can modify the record of ownership or copy/paste a new NFT into existence. 
+***What are NFTs:*** Non-Fungible Tokens are used to represent ownership of unique items. They let us tokenize things like art, collectibles, patents, even real estate. They can only have one official owner at a time and the record of their ownership is secured on the blockchain, no one can modify or copy/paste a new NFT into existence. 
 
 ***What is R:*** R language is widely used among statisticians and data miners for developing data analysis software. 
 
-***What is a smart contract:*** Smart contracts are simply programs stored on a blockchain that run when predetermined conditions are met. They typically are used to automate the execution of an agreement so that all participants can be immediately certain of the outcome, without any intermediary’s involvement or time loss. They can also automate a workflow, triggering the next action when conditions are met. An example of a smart contract use case is the lottery: people buy tickets and at a predefined time, a winner is automatically selected and money is transferred to his account, all this without involvement of a third party.  
+***What is a smart contract:*** Smart contracts are simply programs stored on a blockchain that run when predetermined conditions are met. They typically are used to automate the execution of an agreement so that all participants can be immediately certain of the outcome, without any intermediary’s involvement or time loss. They can also automate a workflow, triggering the next action when conditions are met. An example of a smart contract use case is the lottery: people buy tickets within a predefined time window and once it expires, a winner is automatically selected and money is transferred to his account, all this without involvement of a third party.  
 
-This is the second article on a series on Blockchain. Part I focused on how to read the blockchain and we introduced a few concepts. If you haven't read it, I strongly encourage you to do so to get familiar with the tools and terminology we will use in this second article: [Part I](https://towardsdatascience.com/data-science-on-blockchain-with-r-afaf09f7578c).
+This is the second article on a series of articles on interaction with blockchains using R. Part I focuses on some basic concepts related to blockchain, including how to read the blockchain data.. If you haven't read it, I strongly encourage you to do so to get familiar with the tools and terminology we use in this second article: [Part I](https://towardsdatascience.com/data-science-on-blockchain-with-r-afaf09f7578c).
 
-It is not uncommon to hear that cryptocurrencies is heavily used by Mafia as it is anonymous and confidential. This is only partially true. While we don't know exactly who is behind an address, the transactions made by this address are visible from everyone. And unless you are very careful, it is practically possible to determine who behind the address by crossing databases. There are now companies specialized in doing only this. This is an incredible way to make the world more transparent.
-Blockchain has the potential to resolve major problems the world currently face. Take for example the cacao culture in Ivory Coast. The Country lost more than 60\% of its "protected" forests during the last 25 years despite the engagement of the agribusiness to fight against deforestation. The main reason for the inefficacy of current strategies to protect wild forests is that it is extremely difficult to trace where the cocoa beans have been grown, the existing traceability solutions being easily manipulated. Blockchain could help to solve this issue. In the pharmaceutical world, blockchain has also the potential to improve many aspects such as tracking the supply chain and the manufacturing or securing the clinical trial data management, for example.      
+It is not uncommon to hear that cryptocurrencies are popular with Mafia as it is anonymous and confidential. This is only partially true. While we don't know exactly who is behind an address, the transactions made by this address are visible from everyone. Unless you are very careful, it is practically possible to determine who is behind the address by crossing databases. There are now companies specialized in doing only that. This is a breakthrough path towards a more transparent and fair world. Blockchain has the potential to resolve major problems linked to lack of traceability and accountability problems the world is facing. Take for example the cacao culture in Ivory Coast. The Country has lost more than 60\% of its "protected" forests during the last 25 years despite the official engagement of the agribusiness to fight against deforestation. The main reason for the inneficiency of current strategies to protect wild forests is that it is extremely difficult to trace down the origin of the cocoa beans, the existing traceability solutions being easily manipulated. Blockchain could help solve this issue. In the pharmaceutical world, blockchain has also the potential to improve certain aspects of drug production industry. For example, this technology would enhance the transparency into manufacturing process and supply chain, as well as management of clinical data.      
 
-The question we will cover in this article is how to extract and visualize the blockchain transactions. We will explore some tools available in R. I don't want to have any problem with the mafia so let's focus on a hot topic at the moment: the art NFTs. We will look here more specifically at the *Weird Whales* NFTs but we could look at any NFTs. This can of course be used to investigate anything stored on the blockchain. 
+The topic covered in this article is how to extract and visualize the blockchain transactions. We will explore some of the tools available on R to do this. To avoid messing up with the mafia, let's focus on a more benign but currently very popular application of blockchain technology: the art NFTs. We will look at more specifically the *Weird Whales* NFTs. The approach described here is of course extensible to anything stored on the blockchain. 
 
-The *Weird Whales* project is a collection of 3350 whales which have been programmatically generated from an ocean of combinations, each with unique characteristics and different traits: https://weirdwhalesnft.com/. This project was created by a 12-year-old programmer named Benyamin Ahmed who puts on sale on the famous NFT marketplace *OpenSea*. The 3,350 computer-generated *Weird Whales* almost instantly sold out based on the heartwarming story and Benyamin made more than 400,000\$ in two months. Whales were initially sold at approximately 60\$ but since then, there price has been multiplied by 100...  Read  [this](https://www.cnbc.com/2021/08/25/12-year-old-coder-made-6-figures-selling-weird-whales-nfts.html) to learn more about this incredible story.
+The *Weird Whales* project is a collection of 3350 whales which have been programmatically generated from an ocean of combinations, each with their unique characteristics and traits: https://weirdwhalesnft.com/. This project was created by a 12-year-old programmer named Benyamin Ahmed who puts on sale on the famous NFT marketplace *OpenSea*. The 3,350 computer-generated *Weird Whales* almost instantly sold out based on the heartwarming story and Benyamin made more than 400,000\$ in two months. Whales were initially sold at approximately 60\$ but since then, there price has been multiplied by 100...  Read  [this](https://www.cnbc.com/2021/08/25/12-year-old-coder-made-6-figures-selling-weird-whales-nfts.html) to learn more about this incredible story.
 
 # Data
 
-This section is about downloading the sales data (which tokens were transferred to which address), as well as the sale prices. **It is very interesting but also a bit technical so if you are only interested by the analysis, you can skip this section and go directly to section 3.**
+This section is dedicated to downloading the sales data consisting in which tokens were transferred to which address as well as the sale prices. **This is a very interesting topic but also a bit technical so if you are only interested in the data analysis, you can skip this section and go directly to section 3.**
 
 ## Transfers
 
 The *Weird Whales* are managed by a specific smart contract. This contract is stored on a specific address and you can read its code on EtherScan: https://etherscan.io/address/0x96ed81c7f4406eff359e27bff6325dc3c9e042bd#code
 To make it easier to extract information from the blockchain, which can be fairly complicated due to how the information is stored on the ledger, we can read the events. In Solidity, events are dispatched signals the smart contracts can fire. Any app connected to Ethereum network can listen to these events and act accordingly. Here is a list of recent *Weird Whales* events: https://etherscan.io/address/0x96ed81c7f4406eff359e27bff6325dc3c9e042bd#events
 
-We are particularly interested by the a specific type of event: the transfer. Every time a transfer of a token takes place, an event is stored on the blockchain with that structure: Transfer (index_topic_1 *address from*, index_topic_2 *address to*, index_topic_3 uint256 *tokenId*). As indicated by its names, this event record the address from which the token is transferred, the address to which it is transferred and the token ID, which goes from 1 to 3350 (as there were 3350 *Weird Whales* generated).
+We are mostly interested by a specific type of event: transfer. Every time a transfer of a token takes place, an event gets written on the blockchain with structure: Transfer (index_topic_1 *address from*, index_topic_2 *address to*, index_topic_3 uint256 *tokenId*). As indicated its names, this event records the address from which the token is transferred, the address to which it is transferred and the token ID, which goes from 1 to 3350 (as there were 3350 *Weird Whales* generated).
 
-We will therefore extract all transfer events related to *Weird Whales*. For this, we can filter on the hash signature of this event (also called Topic 0). By doing a bit of reverse engineering on EtherScan (https://etherscan.io/tx/0xa677cfc3b4084f7a5f2e5db5344720bb2ca2c0fe8f29c26b2324ad8c8d6c2ba3#eventlog), we see that topic 0 for this event is "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".
+We will therefore extract all transfer events related to *Weird Whales*. For this, we filter on the hash signature of this event (also called Topic 0). By doing a bit of reverse engineering on EtherScan (https://etherscan.io/tx/0xa677cfc3b4084f7a5f2e5db5344720bb2ca2c0fe8f29c26b2324ad8c8d6c2ba3#eventlog), we see that topic 0 for this event is "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".
 
 Below, we outline a process to create a databases containing trade data of the *Weird Whales*. EtherScan limits the number of result per call to 1000. That's not enough to analyze the Weird Whale transactions as only the minting (process of creation of the token on the blockchain) generates 3350 transaction (1 transaction per NFT minted). And that's without all the subsequent transfers! That's why we have to use a dirty while loop. Note that if you are ready to pay a bit, there are other blockchain database available without restriction. For example, the Ethereum database is available on Google BigQuery.   
 
@@ -65,6 +64,7 @@ library(network)
 library(ggraph)
 library(networkDynamic)
 library(ndtv)
+library(tsna)
 ```
 
 ```{r eval = F}
@@ -75,12 +75,12 @@ dataEventTransferList <- list()
 continue <- 1
 i <- 0
 
-while(continue == 1){ # We will run trough the earliest blocks mentioning Weird whales to the most recent.
+while(continue == 1){ # we will run trough the earliest blocks mentioning Weird whales to the most recent.
   i <- i + 1
   print(i)
   if(i == 1){fromBlock = 12856383} #first block mentioning Weird Whale contract
   
-  # Get the transfer events from the Weird Whale contract
+  # load the transfer events from the Weird Whale contract
   resEventTransfer <- GET("https://api.etherscan.io/api",
                           query = list(module = "logs", 
                                        action = "getLogs", 
@@ -95,7 +95,7 @@ while(continue == 1){ # We will run trough the earliest blocks mentioning Weird 
   
   if(i > 1){
     if(all_equal(dataEventTransferList[[i]], dataEventTransferList[[i-1]]) == T){continue <- 0}  
-  } #at some point, we reached the latest transactions and always the same data so we can stop
+  } # at some point, we reached the latest transactions and we can stop
   
   fromBlock <- max(as.numeric(dataEventTransferList[[i]]$blockNumber)) # increase the block to start looking at for the next iteration
 }
@@ -103,10 +103,10 @@ while(continue == 1){ # We will run trough the earliest blocks mentioning Weird 
 dataEventTransfer <- bind_rows(dataEventTransferList) %>% # coerce the list to dataframe
   distinct() # eliminate potential duplicated rows 
 
-# data management
+# data needs to be reshaped
 dataEventTransfer <- dataEventTransfer %>% 
   rename(contractAddress = address) %>%
-  mutate(dateTime = as.POSIXct(as.numeric(timeStamp), origin = "1970-01-01")) %>%
+  mutate(dateTime = as.POSIXct(as.numeric(timeStamp), origin = "1970-01-01")) %>% # convert the date in a human readable format
   mutate(topics = purrr::map(topics, setNames, c("eventHash","fromAddress","toAddress","tokenId"))) %>% # it is important to set the names otherwise unnest_wider will print many warning messages.
   unnest_wider(topics) %>% # reshape the topic column (list) to get a column for each topic. 
   mutate(tokenId = as.character(as.numeric(tokenId)), # convert Hexadecimal to numeric
@@ -127,12 +127,12 @@ glimpse(dataEventTransfer)
 
 ## Sales price
 
-While both the transfer and the sales can be managed by the same contract, it is done differently on *OpenSea*. The sale is managed by the *OpenSea* contract and if it it approved (asked price reached), the main *OpenSea* contract calls the *Weird whales* contract which then triggers the transfer. If we want to know the price at which the NFTs were sold (in addition to the transfer discussed above), we need to extract data from this second contract. The sales are recorded by an event named *OrderMatch*.
+While both the transfer and the sales can be managed by the same contract, it is done differently in *OpenSea*. The sale is managed by the *OpenSea* contract and if it is approved (asked price reached), the main *OpenSea* contract calls the *Weird whales* contract which then triggers the transfer. If we want to know the price at which the NFTs were sold (in addition to the transfer discussed above), we need to extract data from this second contract. The sales are recorded by an event called *OrderMatch*.
 
-Note that this loop can take a while to run as we download all the sales prices for all NFT sales on *OpenSea*, not only the *Weird Whales*. Knowing that at the time of writing, there were on average 30 transactions per minute on *OpenSea*, it can take a while to download... This code block is very similar to the one above so if you are unsure about what a line does exactly, read the code comments above.
+Note that this loop can take a while to run as we download all the sales prices for all the NFT sales on *OpenSea*, not only the *Weird Whales*. Given that at the time of writing, there were on average 30 transactions per minute on *OpenSea*, it can take a while to download... This code block is very similar to the one above so if you are unsure about what a line does exactly, read the code comments above.
 
 ```{r eval = F}
-# Get the OrderMatch events from the Weird Whale contract
+# load the OrderMatch events from the Weird Whale contract
 dataEventOrderMatchList <- list()
 continue <- 1
 i <- 0
@@ -169,7 +169,7 @@ dataEventOrderMatch <- dataEventOrderMatch %>%
   unnest_wider(topics)
 ```
 
-If we look at the orderMatch event structure, we see that the price is encoded in uint256 type in the data field. It is preceded by two others fields, buyHash and sellHash, both in bytes32 types. The uint256 and bytes32 types are both 32 bytes long, which makes 64 Hexadecimal characters. We are not interested by the buyHash and sellHash data but only by the price sale. We thus have to retrieve the last 64 characters and convert them to decimal to get the sale price.
+If we look at the orderMatch event structure, we see that the price is encoded in uint256 type in the data field. It is preceded by two others fields, buyHash and sellHash, both in bytes32 types. The uint256 and bytes32 types are both 32 bytes long, which makes 64 Hexadecimal characters. We are not interested by the buyHash and sellHash data but only by the price sale. We thus have to retrieve the last 64 characters and convert them into decimal to get the sale price.
 
 ![Figure 1: Structure of an orderMatch event](figures/orderMatchExample.png)
 
@@ -180,6 +180,8 @@ dataEventOrderMatch <- dataEventOrderMatch %>%
          priceETH = priceETH / 10^18)  %>% # this is expressed in Wei, the smallest denomination of ether. 1 ether = 1,000,000,000,000,000,000 Wei (10\^18).
   select(priceETH, transactionHash)
 ```
+
+**Stopped here**
 
 ## Combine the two events 
 
@@ -207,7 +209,7 @@ As we are working on the Ethereum blockchain, the transaction price are given in
 
 We will use a spline function approximation to smooth and interpolate the conversion rate. The reason is that the resolution of the timestamp of the transaction event is the second while the resolution of the historical price dataset is much lower. We thus have to interpolate.
 
-```{r, fig.height = 10, fig.width = 15, fig.cap = "Figure 2: Historical ETH to USD rate. Red line: spline."}
+```{r fig.cap = "Figure 2: Historical ETH to USD rate. Red line: spline."}
 dataWeirdWhales <- readRDS("data/dataWeirdWhales.rds")
 
 # download historical price, see https://docs.poloniex.com/#returnchartdata for more information
@@ -298,7 +300,7 @@ tibble(address = c(dataWeirdWhales$fromAddress, dataWeirdWhales$toAddress)) %>%
 
 Let's now visualize the price transactions as a function of the time, irrespective of the token ID. We see a high variability in the first few days. This is followed by a quieter period and we can observe the beginning of an upward period in the last days of August. This price increase match to an intensive activity on the social media as the creator story become viral. We even see one transaction close to 25000 USD, this corresponds to an increase of about 55555\% compared to the initial price of 45 USD!
 
-```{r fig.height = 10, fig.width = 15, fig.cap = "Figure 3: Sales price (USD) evolution for the *Weird Whales* NFTs transactions."}
+```{r fig.cap = "Figure 3: Sales price (USD) evolution for the *Weird Whales* NFTs transactions."}
 pSalesPrice <- ggplot(aes(x = dateTime, y = priceUSD), data = dataWeirdWhales) +
   geom_point() + 
   scale_x_datetime(date_breaks = "2 week") +
@@ -364,7 +366,7 @@ network <- network(edges,
 
 We can now plot our network. We see that all transactions originate from the minting address (1). Some addresses are involved in multiple transactions and that's why we see several (curved) edges for these ones. We also see that some token were transferred to one address and then sent back to the sender. 
 
-```{r, fig.height = 20, fig.width = 20, fig.caption = "Figure 4: Static network of the WheirdWhales NFTs transactions. Each address is represented by a node (circle) and the transations are represented by the edges (lines). The edge color refers to the token ID."}
+```{r fig.height = 12, fig.width = 12, fig.caption = "Figure 4: Static network of the WheirdWhales NFTs transactions. Each address is represented by a node (circle) and the transations are represented by the edges (lines). The edge color refers to the token ID."}
 pNetwork <- ggraph(network) + 
   geom_edge_fan(aes(color = tokenId), arrow = arrow(length = unit(6, "pt"), type = "open")) +
   geom_node_point(color = "black", size = 8) +
@@ -384,25 +386,20 @@ dNetwork <- networkDynamic(edge.spells = as.data.frame(edges[,c("onset", "termin
 
 We can create a timeline plot showing the **frequence** of the activity. We see that 2/3 of the transactions happened very shortly after the NFT's creation. This is followed by a relatively calm period and then a very active period near the end.
 
-```{r, fig.height = 10, fig.width = 15, fig.cap = "Figure 5: Timeline plot showing the frequence of the transations. Each horizontal line corresponds to a transaction."}
-# timeline plots are useful to debug the animation
-timeline(dNetwork, 
-         plot.vertex.spells = FALSE, 
-         cex = 1,
-         displaylabels = FALSE)
+```{r, fig.cap = "Figure 5: Timeline plot showing the frequence of the transations."}
+plot(tEdgeFormation(dNetwork, time.interval = 5), ylab = "Frequence")
 ```
 
 Below, we create an amazing animation which can be rendered directly in the browser. Edges and vertices can be clicked to show more information about the address and the tokens involved in the transactions.  
 
-```{r, fig.height = 15, fig.width = 15, fig.cap = "Figure 6: Animated network of the WheirdWhales NFTs transactions. Each address is represented by a node (circle) and the transations are represented by the edges (lines). The edge color refers to the token ID. Edges and vertices can be clicked to show more information about the address and the tokens involved in the transactions."}
-
+```{r fig.cap = "Figure 6: Animated network of the WheirdWhales NFTs transactions. Each address is represented by a node (circle) and the transations are represented by the edges (lines). The edge color refers to the token ID. Edges and vertices can be clicked to show more information about the address and the tokens involved in the transactions."}
 # compute a sequence of layout for the rendering (this can take some time)
 compute.animation(dNetwork, 
                   animation.mode = 'MDSJ',
-                  slice.par = list(interval = 25, 
+                  slice.par = list(interval = 50, 
                                  start = 1, 
                                  end = max(edges$terminus), 
-                                 aggregate.dur = 25, 
+                                 aggregate.dur = 50, 
                                  rule = 'any'),
                   verbose = F)
 
@@ -419,7 +416,7 @@ render.d3movie(dNetwork,
 
 # Conclusion
 
-This article is an introduction into how to visualize the blockchain transactions. Here, we have shown an example of how to download and plot a network of the transactions associated to the *WeirdWhales* NFTs. Please contact us if you have any question or request! **Que dire d'autre**?
+This article is an introduction into how to visualize the blockchain transactions. Here, we have shown an example of how to download and plot a network of the transactions associated to the *WeirdWhales* NFTs. We have a few ideas for the next article (Part III). We can explore the Tezos blockchain, the new place to be for NFTs, or we could also investigate the Helium blockchain, a physical decentralized wireless blockchain-powered network for Internet of Things (IoT) devices. Please contact us if you have any question or request! **Que dire d'autre**?
 
 **Note that the code used to generate this article is available on my Github: https://github.com/tdemarchin/DataScienceOnBlockchainWithR-PartII**
 
@@ -429,9 +426,11 @@ This article is an introduction into how to visualize the blockchain transaction
 
 Powered by Etherscan.io and Poloniex APIs: 
 
-  <https://etherscan.io/>
+<https://etherscan.io/>
 
-  <https://docs.poloniex.com/>
+<https://docs.poloniex.com/>
+
+General:
 
 <https://ethereum.org/en>
 
