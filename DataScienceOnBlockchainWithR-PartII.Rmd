@@ -34,9 +34,9 @@ It is not uncommon to hear that cryptocurrencies are popular with Mafia as it is
 
 The topic covered in this article is how to extract and visualize the blockchain transactions. We will explore some of the tools available on R to do this. To avoid messing up with the mafia, let's focus on a more benign but currently very popular application of blockchain technology: the art NFTs. We will look at more specifically the Weird Whales NFTs. The approach described here is of course extensible to anything stored on the blockchain. 
 
-The Weird Whales project is a collection of 3350 whales which have been programmatically generated from an ocean of combinations, each with their unique characteristics and traits: https://weirdwhalesnft.com/. This project was created by a 12-year-old programmer named Benyamin Ahmed who puts on sale on the famous NFT marketplace OpenSea. The 3,350 computer-generated Weird Whales almost instantly sold out based on the heartwarming story and Benyamin made more than 400,000\$ in two months. Whales were initially sold at approximately 60\$ but since then, there price has been multiplied by 100...  Read  [this](https://www.cnbc.com/2021/08/25/12-year-old-coder-made-6-figures-selling-weird-whales-nfts.html) to learn more about this incredible story.
+The Weird Whales project is a collection of 3350 whales which have been programmatically generated from an ocean of combinations, each with their unique characteristics and traits: https://weirdwhalesnft.com/. This project was created by a 12-year-old programmer named Benyamin Ahmed who puts on sale on the famous NFT marketplace OpenSea. The 3,350 computer-generated Weird Whales almost instantly sold out based on the heartwarming story and Benyamin made more than 400,000\$ in two months. Whales were initially sold at approximately 60\$ but since then, their price has been multiplied by 100...  Read  [this](https://www.cnbc.com/2021/08/25/12-year-old-coder-made-6-figures-selling-weird-whales-nfts.html) to learn more about this incredible story.
 
-The code used to generate this article is available on my [Github](https://github.com/tdemarchin/DataScienceOnBlockchainWithR-PartII).
+**A HTML version of this article as well as the code used to generate it is available on my [Github](https://github.com/tdemarchin/DataScienceOnBlockchainWithR-PartII).**
 
 # Data
 
@@ -429,7 +429,7 @@ Hopefully, you enjoyed reading this article and have now a better understanding 
 
 In the next posts, we can explore the Tezos blockchain, the new place to be for NFTs trading. We could also dig into the Helium blockchain, a physical decentralized wireless blockchain-powered network for Internet of Things (IoT) devices. If you wish to learn more about this, please follow me on [Medium](https://tdemarchin.medium.com/), [Linkedin](https://www.linkedin.com/in/tdemarchin/) and/or [Twitter](https://twitter.com/tdemarchin) so you  get alerted of a new article release. Thank you for reading and feel free to reach us if you have questions or comments.
 
-Note that the code used to generate this article is available on my [Github](https://github.com/tdemarchin/DataScienceOnBlockchainWithR-PartII).
+A HTML version of this article as well as the code used to generate it is available on my [Github](https://github.com/tdemarchin/DataScienceOnBlockchainWithR-PartII).
 
 If you wish to help us continue researching and writting about data science on blockchain, don't hesitate to make a donation to our Ethereum address (0xf5fC137E7428519969a52c710d64406038319169) or Tezos address (tz1ffZLHbu9adcobxmd411ufBDcVgrW14mBd).
 
