@@ -18,6 +18,8 @@ knitr::opts_chunk$set(echo = T, warning = F, message = F, cache = T, out.width =
 
 ![Examples of Weird Whale NFTs. These NFTs (token ids 525, 564, 618, 645, 816, 1109, 1523 and 2968) belong to the creator of the collection Benyamin Ahmed (Benoni) who gave us the permission to show them in this article.](figures/patchwork.png)
 
+A HTML version of this article with high resolution figures and tables is available [here](https://tdemarchin.github.io/DataScienceOnBlockchainWithR-PartII//DataScienceOnBlockchainWithR-PartII.html). The code used to generate it is available on my [Github](https://github.com/tdemarchin/DataScienceOnBlockchainWithR-PartII).
+
 # Introduction
 
 ***What is the Blockchain:*** A blockchain is a growing list of records, called blocks, that are linked together using cryptography. It is used for recording transactions, tracking assets, and building trust between participating parties. Primarily known for Bitcoin and cryptocurrencies application, Blockchain is now used in almost all domains, including supply chain, healthcare, logistic, identity management... Some blockchains are public and can be accessed from everyone while some are private. Hundreds of blockchains exist with their own specifications and applications: Bitcoin, Ethereum, Tezos...  
@@ -429,7 +431,8 @@ Hopefully, you enjoyed reading this article and have now a better understanding 
 
 In the next posts, we can explore the Tezos blockchain, the new place to be for NFTs trading. We could also dig into the Helium blockchain, a physical decentralized wireless blockchain-powered network for Internet of Things (IoT) devices. If you wish to learn more about this, please follow me on [Medium](https://tdemarchin.medium.com/), [Linkedin](https://www.linkedin.com/in/tdemarchin/) and/or [Twitter](https://twitter.com/tdemarchin) so you  get alerted of a new article release. Thank you for reading and feel free to reach us if you have questions or comments.
 
-A HTML version of this article as well as the code used to generate it is available on my [Github](https://github.com/tdemarchin/DataScienceOnBlockchainWithR-PartII).
+A HTML version of this article with high resolution figures and tables is available [here](https://tdemarchin.github.io/DataScienceOnBlockchainWithR-PartII//DataScienceOnBlockchainWithR-PartII.html). The code used to generate it is available on my [Github](https://github.com/tdemarchin/DataScienceOnBlockchainWithR-PartII).
+
 
 If you wish to help us continue researching and writting about data science on blockchain, don't hesitate to make a donation to our Ethereum address (0xf5fC137E7428519969a52c710d64406038319169) or Tezos address (tz1ffZLHbu9adcobxmd411ufBDcVgrW14mBd).
 
